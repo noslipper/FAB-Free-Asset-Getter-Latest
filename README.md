@@ -44,11 +44,12 @@ A Tampermonkey script that helps you automatically collect all free assets from 
 - The script will skip assets that are already in your library
 - If you encounter any issues, try refreshing the page and trying again
 - The script works on all FAB marketplace pages, including search results
+- You need to enable Developer Mode in your browser's extensions page
 
 ## Version History
 
 - v2.0: Complete rewrite to match new FAB website design
-- v1.0: Dominic Hock'sInitial version with basic functionality
+- v1.0: Initial version with basic functionality
 
 ## License
 
@@ -92,7 +93,7 @@ AGPL-3.0-or-later
    - 中文：https://www.fab.com/zh-cn/channels/unreal-engine?is_free=1&sort_by=-createdAt
    - 英文：https://www.fab.com/channels/unreal-engine?is_free=1&sort_by=-createdAt
 
-2. 点击页面右上角的"获取免费资产"按钮
+2. 点击页面右上角的"添加免费资产"按钮
 3. 脚本会自动扫描页面上的免费资产，过滤掉已经在你库中的资产，并将剩余的资产添加到你的库中
 4. 进度信息会通过气泡通知显示
 
@@ -102,11 +103,12 @@ AGPL-3.0-or-later
 - 脚本会跳过已经在你库中的资产
 - 如果遇到问题，可以尝试刷新页面后再使用
 - 脚本适用于所有FAB商城页面，包括搜索结果
+- 需要在浏览器的扩展程序页面开启开发者模式
 
 ## 版本历史
 
 - v2.0: 完全重写以匹配新版FAB网站设计
-- v1.0: Dominic Hock的初始版本，实现基本功能
+- v1.0: 初始版本，实现基本功能
 
 ## 许可
 
