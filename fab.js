@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        FAB Free Asset Getter Latest
 // @namespace   Violentmonkey Scripts
-// @copyright   2024, subtixx (https://openuserjs.org/users/subtixx)
+// @copyright   https://greasyfork.org/zh-CN/users/313682-没拖鞋 | 2024, subtixx (https://openuserjs.org/users/subtixx)
 // @match       https://www.fab.com/channels/*
 // @match       https://www.fab.com/zh-cn/channels/*
 // @match       https://www.fab.com/search*
