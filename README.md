@@ -24,7 +24,7 @@ A Tampermonkey script that helps you automatically collect all free assets from 
 2. Install the script:
    - Method 1: Click [here](chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/options.html#nav=utils-tab) to open Tampermonkey's utility tab, then install from URL using:
      ```
-     https://raw.githubusercontent.com/noslipper/FAB-Free-Asset-Getter/main/fab.js
+     https://raw.githubusercontent.com/noslipper/FAB-Free-Asset-Getter-Latest/refs/heads/main/fab.js
      ```
    - Method 2: Open Tampermonkey Dashboard -> Add New Script, then copy and paste the content of `fab.js`
 
@@ -82,7 +82,7 @@ AGPL-3.0-or-later
 2. 安装脚本：
    - 方法1：点击[这里](chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/options.html#nav=utils-tab)打开Tampermonkey的实用工具标签，然后从URL安装：
      ```
-     https://raw.githubusercontent.com/noslipper/FAB-Free-Asset-Getter/main/fab.js
+     https://raw.githubusercontent.com/noslipper/FAB-Free-Asset-Getter-Latest/refs/heads/main/fab.js
      ```
    - 方法2：打开Tampermonkey Dashboard -> 添加新脚本，然后复制粘贴`fab.js`中的内容
 
