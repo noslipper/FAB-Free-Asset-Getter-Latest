@@ -8,11 +8,11 @@
 // @match       https://www.fab.com/zh-cn/search*
 // @grant       none
 // @license     AGPL-3.0-or-later
-// @version     2.0
+// @version     2.1
 // @author      Noslipper <380886011@qq.com> | Dominic Hock <d.hock@it-hock.de>
-// @description A script to get all free assets from the FAB marketplace
-// @downloadURL https://update.greasyfork.org/scripts/518732/FAB%20Free%20Asset%20Getter.user.js
-// @updateURL   https://update.greasyfork.org/scripts/518732/FAB%20Free%20Asset%20Getter.meta.js
+// @description A script to get all free assets from the FAB marketplace (更新日期：2025-05-12)
+// @downloadURL https://update.greasyfork.org/scripts/534044/FAB%20Free%20Asset%20Getter%20Latest.user.js
+// @updateURL https://update.greasyfork.org/scripts/534044/FAB%20Free%20Asset%20Getter%20Latest.meta.js
 // ==/UserScript==
 
 (function () {
@@ -22,8 +22,8 @@
     var assetProgressbar = null;
     var innerAssetsProgressbar = null;
     var assetStatus = null;
-    // 更新选择器以适应网站变化
-    const resultGridID = ".oeSuy4_9, .vL3jJySf, [class*='SearchResults'], main";
+    // 更新选择器以适应网站变化 (2025年更新)
+    const resultGridID = "main, [class*='SearchResults'], .oeSuy4_9, .vL3jJySf";
 
     // 检测页面语言
     function detectLanguage() {
@@ -172,7 +172,11 @@
     }
 
     async function getAcquiredIds(listings) {
+      // 更新内部状态（不显示在UI上）
       assetStatus.innerText = t("needToCheck") + listings.length + t("listings");
+
+      // 显示气泡通知
+      showToast(t("needToCheck") + listings.length + t("listings"), "success");
 
       console.log("Getting acquired ids");
       // max listings is 24 so just cut
@@ -296,10 +300,18 @@
       // 尝试多种可能的选择器来适应网站的变化
       // 添加更多可能的选择器以适应网站结构变化
       const itemSelectors = [
+        // 2024年7月新版Fab页面选择器
+        "main > div > a[href*='/listings/']",
+        "main a[href*='/listings/']",
+        "main > a[href*='/listings/']",
+        // 2024年更新的选择器
+        "a[href*='/listings/']",
+        "div > a[href*='/listings/']",
+        // 旧版选择器
         ".fabkit-Stack-root.d6kADL5Y.Bf_zHIaU",
         ".fabkit-Stack-root.d6kADL5Y",
         ".d6kADL5Y._fyPHkQI",
-        // 添加更通用的选择器
+        // 通用选择器
         "div[class*='Card']",
         "div[class*='card']",
         "div[class*='Item']",
@@ -307,10 +319,7 @@
         "div[class*='Asset']",
         "div[class*='asset']",
         "div[class*='Product']",
-        "div[class*='product']",
-        // 尝试查找包含链接的容器
-        "div > a[href*='/listings/']",
-        "a[href*='/listings/']"
+        "div[class*='product']"
       ];
 
       // 记录所有尝试的选择器
@@ -363,13 +372,17 @@
 
         let root = foundItems[i];
 
-        // 尝试多种可能的选择器来获取名称
+        // 尝试多种可能的选择器来获取名称 (2024年7月更新)
         let nameContainer = root.querySelector("a > div.fabkit-Typography-ellipsisWrapper") ||
                            root.querySelector("div.fabkit-Typography-ellipsisWrapper") ||
                            root.querySelector("[class*='ellipsisWrapper']") ||
                            root.querySelector("[class*='title']") ||
                            root.querySelector("h3") ||
-                           root.querySelector("h2");
+                           root.querySelector("h2") ||
+                           // 2024年7月新版Fab页面选择器
+                           (root.tagName === 'A' && root.querySelector("text")) ||
+                           (root.tagName === 'A' && root.querySelector("div > div")) ||
+                           (root.tagName === 'A' && root);
 
         // 特殊处理 _fyPHkQI 类的元素
         if (!nameContainer && root.classList.contains("_fyPHkQI")) {
@@ -435,10 +448,59 @@
 
         // 检查是否包含"Saved in My Library"文本
         if (cardText.includes("Saved in My Library") ||
-            cardText.includes("已保存在我的库中")) {
+            cardText.includes("已保存在我的库中") ||
+            cardText.includes("已保存") ||
+            cardText.includes("我的库")) {
           isOwned = true;
           ownedReason = "Text 'Saved in My Library' found";
           console.log(`Asset marked as owned: ${name} - reason: ${ownedReason}`);
+        }
+
+        // 2024年7月更新：检查相邻元素是否包含"已保存在我的库中"文本
+        if (!isOwned && root.parentElement) {
+          const parentText = root.parentElement.innerText || root.parentElement.textContent || "";
+          if (parentText.includes("Saved in My Library") ||
+              parentText.includes("已保存在我的库中") ||
+              parentText.includes("已保存") ||
+              parentText.includes("我的库")) {
+            isOwned = true;
+            ownedReason = "Text 'Saved in My Library' found in parent element";
+            console.log(`Asset marked as owned: ${name} - reason: ${ownedReason}`);
+          }
+
+          // 检查兄弟元素
+          const siblings = Array.from(root.parentElement.children);
+          for (const sibling of siblings) {
+            if (sibling !== root) {
+              const siblingText = sibling.innerText || sibling.textContent || "";
+              if (siblingText.includes("Saved in My Library") ||
+                  siblingText.includes("已保存在我的库中") ||
+                  siblingText.includes("已保存") ||
+                  siblingText.includes("我的库")) {
+                isOwned = true;
+                ownedReason = "Text 'Saved in My Library' found in sibling element";
+                console.log(`Asset marked as owned: ${name} - reason: ${ownedReason}`);
+                break;
+              }
+            }
+          }
+        }
+
+        // 2024年7月更新：检查资产卡片中的标签元素
+        if (!isOwned) {
+          const tags = root.querySelectorAll("div[class*='tag'], span[class*='tag'], div[class*='Tag'], span[class*='Tag']");
+          for (const tag of tags) {
+            const tagText = tag.innerText || tag.textContent || "";
+            if (tagText.includes("Saved in My Library") ||
+                tagText.includes("已保存在我的库中") ||
+                tagText.includes("已保存") ||
+                tagText.includes("我的库")) {
+              isOwned = true;
+              ownedReason = "Text 'Saved in My Library' found in tag element";
+              console.log(`Asset marked as owned: ${name} - reason: ${ownedReason}`);
+              break;
+            }
+          }
         }
 
         // 检查是否包含"Free"文本但不在库中
@@ -475,8 +537,6 @@
         });
       }
 
-      assetStatus.style.display = "block";
-
       let acquired = [];
       console.log("Need to check " + currentListings.length + " listings");
       assetStatus.innerText = t("needToCheck") + currentListings.length + t("listings");
@@ -495,13 +555,11 @@
       }
       await new Promise(resolve => setTimeout(resolve, 1000));
 
-      assetProgressbar.style.display = "block";
       // [{id:"",offerId:""}]
       let offers = [];
       for (let i = 0; i < currentListings.length; i++) {
-        // 更新状态文本和进度条
+        // 更新状态文本（仅用于内部跟踪）
         assetStatus.innerText = t("checking") + " " + currentListings[i].name + " (" + currentListings[i].id + ")";
-        innerAssetsProgressbar.style.width = (i / currentListings.length * 100) + "%";
 
         // 每处理5个资产或处理到最后一个资产时更新气泡进度
         if (i % 5 === 0 || i === currentListings.length - 1) {
@@ -877,16 +935,22 @@
     }
 
     function getSortContainer() {
-      // 尝试多种可能的选择器
+      // 尝试多种可能的选择器 (2024年7月更新)
       return document.querySelector(`div.odQtzXCJ > ul._oqSjPnA`) ||
              document.querySelector(`ul._oqSjPnA`) ||
              document.querySelector(`[class*="FilterBar"]`) ||
-             document.querySelector(`header`);
+             document.querySelector(`[class*="filter"]`) ||
+             document.querySelector(`[class*="Filter"]`) ||
+             document.querySelector(`[class*="sort"]`) ||
+             document.querySelector(`[class*="Sort"]`) ||
+             document.querySelector(`header`) ||
+             document.querySelector(`main > div:first-child`);
     }
 
     function getTitleContainer() {
-      // 尝试多种可能的选择器
+      // 尝试多种可能的选择器 (2024年7月更新)
       return document.querySelector(".ArhVH7Um") ||
+             document.querySelector("main > div:first-child") ||
              document.querySelector("main > div") ||
              document.querySelector("main") ||
              document.body;
@@ -924,36 +988,16 @@
         getAll();
       });
 
-      // 创建进度条
+      // 创建进度条（仅用于内部状态跟踪，不显示在UI上）
       assetProgressbar = document.createElement("div");
-      assetProgressbar.style.width = "100%";
-      assetProgressbar.style.height = "32px";
-      assetProgressbar.style.background = "#1C1C20";
-      assetProgressbar.style.margin = "0 0 15px 0";
       assetProgressbar.style.display = "none";
-      assetProgressbar.style.borderRadius = "4px";
-      assetProgressbar.style.overflow = "hidden";
 
       innerAssetsProgressbar = document.createElement("div");
       innerAssetsProgressbar.style.width = "0";
-      innerAssetsProgressbar.style.height = "32px";
-      innerAssetsProgressbar.style.background = "#45C761";
-      innerAssetsProgressbar.style.color = "#1C1C20";
-      innerAssetsProgressbar.style.fontWeight = "bold";
-      innerAssetsProgressbar.style.padding = "6px";
-      innerAssetsProgressbar.style.boxSizing = "border-box";
-      innerAssetsProgressbar.style.transition = "width 0.3s ease";
-      assetProgressbar.appendChild(innerAssetsProgressbar);
+      innerAssetsProgressbar.style.display = "none";
 
-      // 创建状态显示
+      // 创建状态显示（仅用于内部状态跟踪，不显示在UI上）
       assetStatus = document.createElement("div");
-      assetStatus.style.fontSize = "14px";
-      assetStatus.style.fontWeight = "normal";
-      assetStatus.style.background = "#45C761";
-      assetStatus.style.color = "#1C1C20";
-      assetStatus.style.padding = "10px";
-      assetStatus.style.borderRadius = "4px";
-      assetStatus.style.marginBottom = "10px";
       assetStatus.style.display = "none";
 
       // 添加到页面
@@ -963,24 +1007,26 @@
         titleContainer = document.body;
       }
 
-      // 创建一个容器来放置我们的UI元素
+      // 创建一个隐藏容器来放置我们的状态元素
       var uiContainer = document.createElement("div");
-      uiContainer.style.padding = "10px";
-      uiContainer.style.margin = "10px 0";
-      uiContainer.style.backgroundColor = "rgba(0,0,0,0.1)";
-      uiContainer.style.borderRadius = "5px";
-      uiContainer.style.zIndex = "1000";
+      uiContainer.style.display = "none";
 
       uiContainer.appendChild(assetStatus);
       uiContainer.appendChild(assetProgressbar);
 
-      titleContainer.prepend(uiContainer);
+      document.body.appendChild(uiContainer);
 
       // 添加按钮到排序容器或页面顶部
       var sortContainer = getSortContainer();
       if(!sortContainer) {
         showToast(t("error") + "Failed to find sort container", "error");
-        uiContainer.prepend(getAssetsButton);
+        // 如果找不到排序容器，添加到标题容器
+        if(titleContainer && titleContainer !== document.body) {
+          titleContainer.prepend(getAssetsButton);
+        } else {
+          // 如果找不到标题容器，添加到body
+          document.body.prepend(getAssetsButton);
+        }
       } else {
         sortContainer.appendChild(getAssetsButton);
       }
