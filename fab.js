@@ -8,9 +8,9 @@
 // @match       https://www.fab.com/zh-cn/search*
 // @grant       none
 // @license     AGPL-3.0-or-later
-// @version     2.1
+// @version     2.1.1
 // @author      Noslipper <380886011@qq.com> | Dominic Hock <d.hock@it-hock.de>
-// @description A script to get all free assets from the FAB marketplace (更新日期：2025-05-12)
+// @description A script to get all free assets from the FAB marketplace (更新日期：2025-05-13)
 // @downloadURL https://update.greasyfork.org/scripts/534044/FAB%20Free%20Asset%20Getter%20Latest.user.js
 // @updateURL https://update.greasyfork.org/scripts/534044/FAB%20Free%20Asset%20Getter%20Latest.meta.js
 // ==/UserScript==
@@ -68,7 +68,7 @@
         "batches": " batches of items",
         "error": "Error: ",
         "addFreeAssets": "Get Free Assets",
-        "scriptLoaded": "FAB Free Asset Getter v2.0 loaded!",
+        "scriptLoaded": "FAB Free Asset Getter v2.1.1 loaded!",
         "checking": "Checking",
         "filteredAssets": "Found {0} assets to add out of {1} total assets",
         "allAssetsOwned": "All assets appear to be already in your library",
@@ -101,7 +101,7 @@
         "batches": " 批项目",
         "error": "错误: ",
         "addFreeAssets": "添加免费资产",
-        "scriptLoaded": "FAB免费资产获取器 v2.0 已加载！",
+        "scriptLoaded": "FAB免费资产获取器 v2.1.1 已加载！",
         "checking": "正在检查",
         "filteredAssets": "在 {1} 个资产中找到 {0} 个需要添加的资产",
         "allAssetsOwned": "所有资产似乎都已在您的库中",
@@ -597,44 +597,74 @@
         // 记录我们将要处理的资产
         console.log("Processing asset that is NOT in library:", currentListing.name, currentListing.id);
 
-        let result = await fetch("https://www.fab.com/i/listings/" + currentListing.id, {
-          "credentials": "include",
-          "headers": {
-            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:131.0) Gecko/20100101 Firefox/131.0",
-            "Accept": "application/json, text/plain, */*",
-            "Accept-Language": "en",
-            "X-Requested-With": "XMLHttpRequest",
-            "X-CsrfToken": getCSRFToken(),
-            "Sec-GPC": "1",
-            "Sec-Fetch-Dest": "empty",
-            "Sec-Fetch-Mode": "cors",
-            "Sec-Fetch-Site": "same-origin",
-            "Priority": "u=0"
-          },
-          "referrer": "https://www.fab.com/listings/" + currentListing.id,
-          "method": "GET",
-          "mode": "cors"
-        });
+        try {
+          let result = await fetch("https://www.fab.com/i/listings/" + currentListing.id, {
+            "credentials": "include",
+            "headers": {
+              "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:131.0) Gecko/20100101 Firefox/131.0",
+              "Accept": "application/json, text/plain, */*",
+              "Accept-Language": "en",
+              "X-Requested-With": "XMLHttpRequest",
+              "X-CsrfToken": getCSRFToken(),
+              "Sec-GPC": "1",
+              "Sec-Fetch-Dest": "empty",
+              "Sec-Fetch-Mode": "cors",
+              "Sec-Fetch-Site": "same-origin",
+              "Priority": "u=0"
+            },
+            "referrer": "https://www.fab.com/listings/" + currentListing.id,
+            "method": "GET",
+            "mode": "cors"
+          });
 
-        // licenses -> foreach -> get where price 0 -> buy
-        let json = await result.json();
-        let listingOffers = [];
-        for (let j = 0; j < json.licenses.length; j++) {
-          let license = json.licenses[j];
-          if (license.priceTier.price != 0) {
-            continue;
+          // 检查API响应是否成功
+          if (!result.ok) {
+            console.error(`API请求失败: ${result.status} ${result.statusText} - 资产ID: ${currentListing.id}`);
+            showToast(`无法获取资产信息: ${currentListing.name}`, "warning");
+            continue; // 跳过这个资产，处理下一个
           }
 
-          offers.push({
-            name: currentListing.name,
-            id: currentListing.id,
-            offerId: license.offerId
-          });
-          listingOffers.push(license.offerId);
-          console.log("Found free offer for " + currentListing.name + " (" + currentListing.id + ")");
-        }
-        if (listingOffers.length == 0) {
-          console.log("No free offers found for " + currentListing.name + " (" + currentListing.id + ")");
+          // licenses -> foreach -> get where price 0 -> buy
+          let json = await result.json();
+
+          // 检查JSON数据是否有效
+          if (!json || !json.licenses || !Array.isArray(json.licenses)) {
+            console.error(`无效的API响应数据 - 资产ID: ${currentListing.id}`, json);
+            showToast(`无效的资产数据: ${currentListing.name}`, "warning");
+            continue; // 跳过这个资产，处理下一个
+          }
+
+          let listingOffers = [];
+          for (let j = 0; j < json.licenses.length; j++) {
+            let license = json.licenses[j];
+
+            // 检查license对象是否有效
+            if (!license || !license.priceTier) {
+              console.warn(`无效的许可证数据 - 资产ID: ${currentListing.id}, 许可证索引: ${j}`);
+              continue; // 跳过这个许可证，检查下一个
+            }
+
+            if (license.priceTier.price != 0) {
+              continue;
+            }
+
+            offers.push({
+              name: currentListing.name,
+              id: currentListing.id,
+              offerId: license.offerId
+            });
+            listingOffers.push(license.offerId);
+            console.log("Found free offer for " + currentListing.name + " (" + currentListing.id + ")");
+          }
+          if (listingOffers.length == 0) {
+            console.log("No free offers found for " + currentListing.name + " (" + currentListing.id + ")");
+          }
+        } catch (error) {
+          // 捕获并处理所有可能的错误
+          console.error(`处理资产时出错: ${currentListing.name} (${currentListing.id}) - ${error.message}`);
+          showToast(`处理资产时出错: ${currentListing.name}`, "error");
+          // 继续处理下一个资产
+          continue;
         }
         await new Promise(resolve => setTimeout(resolve, 500));
       }
@@ -865,7 +895,13 @@
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
 
-      return foundItems[foundItems.length - 1];
+      // 安全地返回最后一个项目，确保foundItems存在且有长度
+      if (foundItems && foundItems.length > 0) {
+        return foundItems[foundItems.length - 1];
+      } else {
+        console.warn("没有找到可用的项目，返回null");
+        return null;
+      }
     }
 
     async function getAll() {
@@ -878,8 +914,16 @@
       const maxScrollAttempts = 3; // 如果连续几次没有新项目，则停止
 
       try {
-        last = await getIds();
+        // 获取初始资产列表
+        try {
+          last = await getIds();
+        } catch (error) {
+          console.error("获取初始资产列表时出错:", error);
+          showToast("获取资产列表失败: " + error.message, "error");
+          return; // 如果初始获取失败，直接返回
+        }
 
+        // 检查是否找到了资产
         if (!last) {
           showToast("没有找到可滚动的项目", "error");
           return;
@@ -891,34 +935,55 @@
             showToast(t("scrollingMore") + (i+1) + ")...");
             console.log(`滚动加载更多项目 (第 ${i+1} 次)...`);
 
-            // 平滑滚动到元素
-            last.scrollIntoView({ behavior: 'smooth', block: 'end' });
+            try {
+              // 平滑滚动到元素
+              last.scrollIntoView({ behavior: 'smooth', block: 'end' });
 
-            // 等待页面加载新内容
-            await new Promise(resolve => setTimeout(resolve, 5000));
+              // 等待页面加载新内容
+              await new Promise(resolve => setTimeout(resolve, 5000));
 
-            // 获取新加载的项目
-            showToast(t("processingNewItems"));
-            const prevLast = last;
-            last = await getIds();
+              // 获取新加载的项目
+              showToast(t("processingNewItems"));
+              const prevLast = last;
 
-            // 检查是否有新项目加载
-            if (!last || last === prevLast) {
+              try {
+                last = await getIds();
+              } catch (error) {
+                console.error(`获取新加载项目时出错 (第 ${i+1} 次):`, error);
+                showToast("获取新项目失败: " + error.message, "warning");
+                // 不中断整个过程，继续尝试
+                scrollAttempts++;
+                continue;
+              }
+
+              // 检查是否有新项目加载
+              if (!last || last === prevLast) {
+                scrollAttempts++;
+                console.log(`没有新项目加载，尝试次数: ${scrollAttempts}/${maxScrollAttempts}`);
+
+                if (scrollAttempts >= maxScrollAttempts) {
+                  showToast(t("reachedBottom"), "success");
+                  console.log("已到达页面底部，没有更多项目");
+                  break;
+                }
+              } else {
+                // 重置计数器，因为找到了新项目
+                scrollAttempts = 0;
+                totalProcessed++;
+              }
+
+              showToast(`已处理 ${totalProcessed} 批项目!`);
+            } catch (scrollError) {
+              console.error(`滚动处理时出错 (第 ${i+1} 次):`, scrollError);
+              showToast("滚动处理失败: " + scrollError.message, "warning");
+              // 增加失败计数，但继续尝试
               scrollAttempts++;
-              console.log(`没有新项目加载，尝试次数: ${scrollAttempts}/${maxScrollAttempts}`);
 
               if (scrollAttempts >= maxScrollAttempts) {
-                showToast(t("reachedBottom"), "success");
-                console.log("已到达页面底部，没有更多项目");
+                showToast("达到最大尝试次数，停止处理", "warning");
                 break;
               }
-            } else {
-              // 重置计数器，因为找到了新项目
-              scrollAttempts = 0;
-              totalProcessed++;
             }
-
-            showToast(`已处理 ${totalProcessed} 批项目!`);
           } else {
             showToast(t("noResults"), "error");
             console.error("无法滚动，元素不存在或不支持滚动");
