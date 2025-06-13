@@ -8,9 +8,9 @@
 // @match       https://www.fab.com/zh-cn/search*
 // @grant       none
 // @license     AGPL-3.0-or-later
-// @version     2.1.1
+// @version     2.1.2
 // @author      Noslipper <380886011@qq.com> | Dominic Hock <d.hock@it-hock.de>
-// @description A script to get all free assets from the FAB marketplace (更新日期：2025-05-13)
+// @description A script to get all free assets from the FAB marketplace (更新日期：2025-05-14)
 // @downloadURL https://update.greasyfork.org/scripts/534044/FAB%20Free%20Asset%20Getter%20Latest.user.js
 // @updateURL https://update.greasyfork.org/scripts/534044/FAB%20Free%20Asset%20Getter%20Latest.meta.js
 // ==/UserScript==
@@ -203,6 +203,9 @@
       if (filteredListings.length === 0 && listings.length > 0) {
         console.log("所有资产似乎都已在库中，但可能检测不准确");
         showToast(t("allAssetsOwned"));
+
+        // 返回一个特殊标记，表示当前页面的所有资产都已在库中
+        return { allOwned: true };
       } else {
         showToast(t("filteredAssets").replace("{0}", filteredListings.length).replace("{1}", listings.length));
       }
@@ -895,6 +898,21 @@
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
 
+      // 检查是否所有资产都已在库中
+      let allAssetsOwned = true;
+      for (const listing of currentListings) {
+        if (!listing.isOwned) {
+          allAssetsOwned = false;
+          break;
+        }
+      }
+
+      // 如果所有资产都已在库中，返回特殊标记
+      if (allAssetsOwned && currentListings.length > 0) {
+        console.log("当前页面所有资产都已在库中，返回特殊标记");
+        return { allOwned: true, lastElement: foundItems[foundItems.length - 1] };
+      }
+
       // 安全地返回最后一个项目，确保foundItems存在且有长度
       if (foundItems && foundItems.length > 0) {
         return foundItems[foundItems.length - 1];
@@ -911,12 +929,36 @@
       let last;
       let totalProcessed = 0;
       let scrollAttempts = 0;
-      const maxScrollAttempts = 3; // 如果连续几次没有新项目，则停止
+      const maxScrollAttempts = 10; // 增加到10次，给予更多尝试机会
 
       try {
         // 获取初始资产列表
         try {
-          last = await getIds();
+          const result = await getIds();
+
+          // 检查是否收到了"所有资产都已在库中"的特殊标记
+          if (result && result.allOwned === true) {
+            console.log("检测到初始页面所有资产都已在库中");
+            showToast("当前页面所有资产都已在库中，将尝试滚动加载更多", "success");
+
+            // 如果特殊标记中包含lastElement，使用它来滚动
+            if (result.lastElement && typeof result.lastElement.scrollIntoView === 'function') {
+              last = result.lastElement;
+
+              // 立即执行一次快速滚动，不等待用户点击
+              console.log("初始页面所有资产都已在库中，执行快速滚动");
+              last.scrollIntoView({ behavior: 'auto', block: 'end' });
+              // 短暂等待后继续执行
+              await new Promise(resolve => setTimeout(resolve, 3000));
+            } else {
+              // 如果没有可用的元素，提示用户并返回
+              showToast("无法找到可滚动的元素", "error");
+              return;
+            }
+          } else {
+            // 正常情况，更新last
+            last = result;
+          }
         } catch (error) {
           console.error("获取初始资产列表时出错:", error);
           showToast("获取资产列表失败: " + error.message, "error");
@@ -929,7 +971,9 @@
           return;
         }
 
-        for (let i = 0; i < 64; i++) {
+        // 将循环次数从64增加到1000，实际上接近无限循环
+        // 只有在达到页面底部或出现错误时才会停止
+        for (let i = 0; i < 1000; i++) {
           // 滚动到最后一个项目并等待加载
           if (last && typeof last.scrollIntoView === 'function') {
             showToast(t("scrollingMore") + (i+1) + ")...");
@@ -939,15 +983,40 @@
               // 平滑滚动到元素
               last.scrollIntoView({ behavior: 'smooth', block: 'end' });
 
-              // 等待页面加载新内容
-              await new Promise(resolve => setTimeout(resolve, 5000));
+              // 等待页面加载新内容 - 增加等待时间以确保加载完成
+              await new Promise(resolve => setTimeout(resolve, 7000));
 
               // 获取新加载的项目
               showToast(t("processingNewItems"));
               const prevLast = last;
 
               try {
-                last = await getIds();
+                const result = await getIds();
+
+                // 检查是否收到了"所有资产都已在库中"的特殊标记
+                if (result && result.allOwned === true) {
+                  console.log("检测到当前页面所有资产都已在库中，快速跳过");
+                  showToast("当前页面所有资产都已在库中，快速跳过", "success");
+
+                  // 如果特殊标记中包含lastElement，使用它来滚动
+                  if (result.lastElement && typeof result.lastElement.scrollIntoView === 'function') {
+                    last = result.lastElement;
+
+                    // 快速滚动 - 减少等待时间
+                    last.scrollIntoView({ behavior: 'auto', block: 'end' });
+                    await new Promise(resolve => setTimeout(resolve, 3000)); // 减少等待时间
+
+                    // 立即继续循环，不增加尝试次数
+                    continue;
+                  } else {
+                    // 如果没有lastElement，使用prevLast
+                    last = prevLast;
+                    continue;
+                  }
+                }
+
+                // 正常情况，更新last
+                last = result;
               } catch (error) {
                 console.error(`获取新加载项目时出错 (第 ${i+1} 次):`, error);
                 showToast("获取新项目失败: " + error.message, "warning");
