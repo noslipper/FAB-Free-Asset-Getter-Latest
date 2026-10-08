@@ -1,11 +1,11 @@
 // ==UserScript==
 // @name        FAB Free Asset Getter
-// @namespace   https://greasyfork.org/en/users/1443067-chaython
-// @version     2.2.6
-// @description A script to get all free assets from the FAB marketplace. Fixes the "Sort" button issue and adds robust Auto-Scrolling. Fork of the original by Noslipper (没拖鞋) & subtixx.
-// @author      Chaython
-// @homepageURL https://github.com/Chaython/FAB-Free-Asset-Getter-Latest
-// @supportURL  https://github.com/Chaython/FAB-Free-Asset-Getter-Latest/issues
+// @namespace   https://greasyfork.org/en/users/313682-没拖鞋
+// @version     2.4.2
+// @description A script to get all free assets from the FAB marketplace. Fork of the original by subtixx.
+// @author      noslipper
+// @homepageURL https://github.com/noslipper/FAB-Free-Asset-Getter-Latest
+// @supportURL  https://github.com/noslipper/FAB-Free-Asset-Getter-Latest/issues
 // @match       https://www.fab.com/*
 // @grant       none
 // @license     AGPL-3.0-or-later
@@ -13,35 +13,41 @@
 // ==/UserScript==
 
 (function () {
-    `use strict`;
+    "use strict";
     var notificationQueueContainer = null;
+    var scriptIsRunning = false;
+    var mainBtn = null;
+    var processedIds = new Set();   // items already handled (success / not-free / owned) this session
+    var rateLimited = false;        // adaptive slowdown when the site returns HTML (bot-check) responses
 
     // --- UTILS ---
-    function showToast(message, type = 'success', duration = 3000) {
-        const toast = document.createElement('div');
+    function showToast(message, type, duration) {
+        type = type || "success";
+        duration = duration || 3000;
+        const toast = document.createElement("div");
         toast.textContent = message;
         toast.style.margin = "5px 0";
-        toast.style.padding = '12px 16px';
-        toast.style.backgroundColor = type === 'success' ? '#28a745' : (type === 'warning' ? '#ffc107' : '#dc3545');
-        toast.style.color = type === 'warning' ? 'black' : 'white';
-        toast.style.borderRadius = '6px';
-        toast.style.zIndex = '10000';
-        toast.style.fontFamily = 'Segoe UI, Roboto, Arial, sans-serif';
-        toast.style.fontSize = '14px';
-        toast.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
-        toast.style.opacity = '0';
-        toast.style.transition = 'opacity 0.3s ease';
-        toast.style.maxWidth = '300px';
-        toast.style.whiteSpace = 'nowrap';
-        toast.style.overflow = 'hidden';
-        toast.style.textOverflow = 'ellipsis';
+        toast.style.padding = "12px 16px";
+        toast.style.backgroundColor = type === "success" ? "#28a745" : (type === "warning" ? "#ffc107" : "#dc3545");
+        toast.style.color = type === "warning" ? "black" : "white";
+        toast.style.borderRadius = "6px";
+        toast.style.zIndex = "10000";
+        toast.style.fontFamily = "Segoe UI, Roboto, Arial, sans-serif";
+        toast.style.fontSize = "14px";
+        toast.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.15)";
+        toast.style.opacity = "0";
+        toast.style.transition = "opacity 0.3s ease";
+        toast.style.maxWidth = "300px";
+        toast.style.whiteSpace = "nowrap";
+        toast.style.overflow = "hidden";
+        toast.style.textOverflow = "ellipsis";
 
-        if(notificationQueueContainer) notificationQueueContainer.appendChild(toast);
+        if (notificationQueueContainer) notificationQueueContainer.appendChild(toast);
 
-        requestAnimationFrame(() => { toast.style.opacity = '1'; });
+        requestAnimationFrame(() => { toast.style.opacity = "1"; });
 
         setTimeout(() => {
-            toast.style.opacity = '0';
+            toast.style.opacity = "0";
             setTimeout(() => { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 300);
         }, duration);
     }
@@ -51,215 +57,366 @@
         for (let i = 0; i < cookies.length; i++) {
             let cookie = cookies[i].trim();
             if (cookie.startsWith("fab_csrftoken=")) {
-                return cookie.split("=")[1];
+                const v = cookie.split("=").slice(1).join("=");
+                if (v) {
+                    try { return decodeURIComponent(v); } catch (e) { return v; }
+                }
             }
         }
+        let metaToken = document.querySelector('meta[name="csrf-token"], meta[name="xsrf-token"]');
+        if (metaToken) return metaToken.getAttribute("content");
         return "";
     }
 
-    // --- CORE LOGIC ---
+    // Interruptible delay so the user can cancel during long waits
+    async function cancellableDelay(ms) {
+        let elapsed = 0;
+        while (elapsed < ms && scriptIsRunning) {
+            await new Promise(r => setTimeout(r, 100));
+            elapsed += 100;
+        }
+    }
 
-    // 1. Scan the CURRENT visible part of the page for items
+    // Fetch with retry + backoff. The FAB API occasionally answers a plain HTML
+    // page (bot check / rate limit) instead of JSON; we detect that and retry.
+    async function apiFetch(url, options, retries) {
+        retries = retries || 2;
+        for (let attempt = 0; attempt <= retries; attempt++) {
+            try {
+                const r = await fetch(url, options);
+                const ct = r.headers.get("content-type") || "";
+                if (r.status === 401) return { ok: false, status: 401 };
+                if (!r.ok) {
+                    if (attempt < retries) await cancellableDelay(1500 * (attempt + 1));
+                    continue;
+                }
+                if (ct.indexOf("application/json") >= 0) {
+                    const data = await r.json();
+                    rateLimited = false;
+                    return { ok: true, data: data };
+                }
+                // HTML response => treat as transient bot-check / rate-limit
+                rateLimited = true;
+            } catch (e) {
+                // network error; keep retrying
+            }
+            await cancellableDelay(1500 * (attempt + 1));
+        }
+        return { ok: false, status: -1 };
+    }
+
+    // --- FREE-OFFER DETECTION ---
+    // The current FAB details API exposes licenses with a priceTier that has
+    // `price` (base price) and `discountedPrice` (current price when on sale).
+    // An offer is free when either is 0. License type is detected via the
+    // stable `slug` field (professional / personal / uefn-reference-only),
+    // because `name` is localized ("专业" instead of "Professional").
+    const LICENSE_PRIORITY = { professional: 0, personal: 1, "uefn-reference-only": 2 };
+
+    function findFreeOffer(licenses) {
+        if (!Array.isArray(licenses) || licenses.length === 0) return null;
+        let best = null;
+        let bestPriority = Infinity;
+
+        for (const lic of licenses) {
+            const pt = lic && lic.priceTier;
+            if (!pt) continue;
+            const price = pt.price;
+            const discounted = pt.discountedPrice;
+            const isFree = (price === 0 || price === "0") || (discounted === 0 || discounted === "0");
+            if (!isFree) continue;
+
+            const slug = (lic.slug || "").toLowerCase();
+            const name = (lic.name || "").toLowerCase();
+            let priority;
+            if (Object.prototype.hasOwnProperty.call(LICENSE_PRIORITY, slug)) {
+                priority = LICENSE_PRIORITY[slug];
+            } else if (name.indexOf("professional") >= 0 || name.indexOf("专业") >= 0) {
+                priority = 0;
+            } else if (name.indexOf("personal") >= 0 || name.indexOf("个人") >= 0) {
+                priority = 1;
+            } else {
+                priority = 2;
+            }
+
+            if (priority < bestPriority) {
+                bestPriority = priority;
+                best = lic;
+            }
+        }
+        if (!best) return null;
+        return best.offerId || best.uid || best.listingLicenseId || null;
+    }
+
+    // --- OWNED CHECK ---
+    // 1) API: the same batch endpoint the FAB page itself uses for ownership.
+    // 2) DOM: text hints on the card.
+    const OWNED_TEXTS = [
+        "Saved in My Library", "In Library", "My Library", "Added to Library",
+        "已保存", "已添加", "在库中", "已拥有", "已领取", "已添加到库"
+    ];
+
+    function isOwnedNode(node) {
+        if (!node) return false;
+        const text = node.innerText || node.textContent || "";
+        const parentText = node.parentElement ? node.parentElement.innerText : "";
+        return OWNED_TEXTS.some(t => text.indexOf(t) >= 0 || parentText.indexOf(t) >= 0);
+    }
+
+    async function fetchOwnedMap(ids) {
+        if (!ids.length) return new Map();
+        try {
+            const token = getCSRFToken();
+            if (!token) return new Map();
+            // The API expects listingIds as REPEATED query params (listingIds=a&listingIds=b),
+            // and returns [{uid, acquired, entitlementId, wishlisted}, ...].
+            const q = new URLSearchParams();
+            ids.slice(0, 200).forEach(id => q.append("listingIds", id));
+            const r = await apiFetch("/i/users/me/listings-states?" + q.toString(), {
+                headers: { "X-CsrfToken": token, "X-Requested-With": "XMLHttpRequest", "Accept": "application/json" }
+            }, 1);
+            if (!r.ok || !r.data) return new Map();
+            const list = Array.isArray(r.data) ? r.data : (r.data.results || r.data.data || []);
+            const owned = new Map();
+            for (const item of list) {
+                if (item && item.acquired === true && item.uid) {
+                    owned.set(item.uid, true);
+                }
+            }
+            return owned;
+        } catch (e) {
+            return new Map();
+        }
+    }
+
+    // --- SCAN VISIBLE ITEMS ---
+    // Title parsing strategies for the current card layout:
+    // 1. Typography text inside the listing link (e.g. .fabkit-Typography-ellipsisWrapper)
+    // 2. aria-label (e.g. "Quixel Megascans创作的Forest Terrain")
+    // 3. Raw link innerText
+    function getTitle(link) {
+        const textNode = link.querySelector(".fabkit-Typography-ellipsisWrapper, [class*='Typography'], h3, h2, span.text");
+        if (textNode && textNode.innerText && textNode.innerText.trim()) {
+            return textNode.innerText.trim();
+        }
+        const aria = link.getAttribute("aria-label");
+        if (aria && aria.trim()) return aria.trim();
+        if (link.innerText && link.innerText.trim()) return link.innerText.trim();
+        return "";
+    }
+
     function scanVisibleItems() {
-        // Broad selectors to catch everything
         const allLinks = document.querySelectorAll("a[href*='/listings/']");
-
-        let items = [];
+        const items = [];
+        const seen = new Set();
         allLinks.forEach(link => {
-            if(link.closest('footer')) return;
+            if (link.closest("footer")) return;
 
             const url = link.href;
-            const id = url.split("/").pop();
+            const m = url.match(/\/([^/?#]+)\/?$/);
+            const id = m ? m[1] : null;
+            if (!id || seen.has(id)) return;
+            seen.add(id);
 
-            // --- UPDATED NAME PARSING LOGIC ---
-            let title = "Unknown Asset";
+            let title = getTitle(link);
+            if (!title) title = "Asset #" + id;
+            title = title.replace(/[\n\r]+/g, " ").trim();
 
-            // Strategy 1: Check image alt text (Very reliable on FAB)
-            const img = link.querySelector("img");
-            if (img && img.alt && img.alt.length > 0) {
-                title = img.alt;
-            }
-            // Strategy 2: Check standard headers inside the link
-            else {
-                const textNode = link.querySelector("[class*='Typography'], h3, h2, span.text");
-                if (textNode && textNode.innerText.trim().length > 0) {
-                    title = textNode.innerText.trim();
-                }
-                // Strategy 3: Check raw text of the link
-                else if (link.innerText.trim().length > 0) {
-                    title = link.innerText.trim();
-                }
-            }
+            const card = link.closest("div[class*='Card'], div[class*='Stack'], div[class*='Surface']") || link.parentElement;
+            const owned = isOwnedNode(card || link);
 
-            // Fallback: If title is still "Unknown Asset", use the ID so the user sees SOMETHING
-            if (title === "Unknown Asset" && id) {
-                title = `Asset #${id}`;
-            }
-
-            // Cleanup title (remove newlines)
-            title = title.replace(/[\n\r]+/g, ' ').trim();
-            // ----------------------------------
-
-            // Helper to check if node is already owned
-            const isOwned = (node) => {
-                const text = node.innerText || node.textContent || "";
-                const parentText = node.parentElement ? node.parentElement.innerText : "";
-                return (text.includes("Saved in My Library") ||
-                        text.includes("已保存") ||
-                        parentText.includes("Saved in My Library"));
-            };
-
-            if (id && !items.some(x => x.id === id)) {
-                const card = link.closest("div[class*='Card'], div[class*='Stack']") || link.parentElement;
-                const owned = isOwned(card || link);
-
-                items.push({
-                    id: id,
-                    name: title,
-                    url: url,
-                    isOwned: owned,
-                    element: link
-                });
-            }
+            items.push({ id: id, name: title, url: url, isOwned: owned, element: link });
         });
         return items;
     }
 
-    // 2. Process a specific list of items
-    async function processItems(items) {
+    // --- PROCESS ITEMS ---
+    async function processItems(items, ownedMap) {
         let processedCount = 0;
+        let fatal = null;
+        const token = getCSRFToken();
+        if (!token) {
+            showToast("Error: Security token missing. Please log in or refresh.", "error", 5000);
+            return { added: 0, fatal: "no-token" };
+        }
 
-        for (let item of items) {
-            if (item.isOwned) continue;
+        for (const item of items) {
+            if (!scriptIsRunning) break;
+            if (item.isOwned || ownedMap.get(item.id)) {
+                processedIds.add(item.id);
+                continue;
+            }
+            if (processedIds.has(item.id)) continue;
 
+            // A. Fetch details and locate the free offer
+            let freeOfferId = null;
             try {
-                // A. Check details
-                let detailsReq = await fetch(`https://www.fab.com/i/listings/${item.id}`, {
-                    headers: { "X-CsrfToken": getCSRFToken(), "X-Requested-With": "XMLHttpRequest" }
+                const detailsReq = await apiFetch("https://www.fab.com/i/listings/" + item.id, {
+                    headers: { "X-CsrfToken": token, "X-Requested-With": "XMLHttpRequest", "Accept": "application/json" }
                 });
-                if(!detailsReq.ok) continue;
-                let details = await detailsReq.json();
-
-                // Find free offer with Priority: Professional > Personal
-                let freeOfferId = null;
-                if(details.licenses) {
-                    let professionalFree = null;
-                    let standardFree = null;
-
-                    for(let lic of details.licenses) {
-                        if(lic.priceTier && lic.priceTier.price === 0) {
-                            const name = (lic.name || "").toLowerCase();
-                            // Check for professional keywords
-                            if (name.includes("professional")) {
-                                professionalFree = lic.offerId;
-                            } else {
-                                standardFree = lic.offerId;
-                            }
-                        }
-                    }
-
-                    // Select Professional if available, otherwise fallback to Standard/Personal
-                    freeOfferId = professionalFree || standardFree;
+                if (detailsReq.status === 401) {
+                    fatal = "auth";
+                    break;
                 }
+                if (!detailsReq.ok || !detailsReq.data) {
+                    // transient failure: leave item unmarked so it retries next round
+                    console.warn("[FAB] details fetch failed, will retry later:", item.name);
+                    continue;
+                }
+                freeOfferId = findFreeOffer(detailsReq.data.licenses);
+            } catch (e) {
+                console.error("[FAB] details error:", item.name, e);
+                continue;
+            }
 
-                if (!freeOfferId) continue;
+            if (!freeOfferId) {
+                processedIds.add(item.id);
+                console.log("[FAB] skipped (no free tier):", item.name);
+                continue;
+            }
 
-                // B. Add to library
-                showToast(`Adding: ${item.name}...`, "info", 1500);
+            // B. Add to library
+            showToast("Adding: " + item.name + "...", "info", 1500);
+            try {
                 const formData = new FormData();
                 formData.append("offer_id", freeOfferId);
-
-                let addReq = await fetch(`https://www.fab.com/i/listings/${item.id}/add-to-library`, {
+                const addReq = await fetch("https://www.fab.com/i/listings/" + item.id + "/add-to-library", {
                     method: "POST",
-                    headers: { "X-CsrfToken": getCSRFToken(), "X-Requested-With": "XMLHttpRequest" },
+                    headers: { "X-CsrfToken": token, "X-Requested-With": "XMLHttpRequest" },
                     body: formData
                 });
 
                 if (addReq.ok) {
-                    showToast(`Success: ${item.name}`, "success");
+                    processedIds.add(item.id);
                     processedCount++;
-                    // Mark visually as owned
-                    item.element.style.border = "3px solid #45C761";
-                    item.element.style.boxSizing = "border-box";
+                    markAdded(item);
+                    showToast("Success: " + item.name, "success");
+                } else if (addReq.status === 401) {
+                    fatal = "auth";
+                    showToast("Error 401: Session expired. Please refresh the page.", "error", 5000);
+                    break;
+                } else {
+                    const body = await addReq.text().catch(() => "");
+                    if (/already|exists|已在|已保存|已添加|已拥有/i.test(body)) {
+                        processedIds.add(item.id);
+                        console.log("[FAB] already owned:", item.name);
+                    } else {
+                        // transient error: retry on the next round
+                        console.error("[FAB] add failed (will retry):", item.name, "status=" + addReq.status, body.slice(0, 200));
+                    }
                 }
             } catch (e) {
-                console.error(e);
+                console.error("[FAB] add error:", item.name, e);
             }
-            // Polite delay
-            await new Promise(r => setTimeout(r, 600));
+
+            await cancellableDelay(rateLimited ? 2000 : 600);
         }
-        return processedCount;
+        return { added: processedCount, fatal: fatal };
     }
 
-    // 3. MAIN LOOP
+    function markAdded(item) {
+        if (item.element && item.element.isConnected) {
+            const href = item.element.getAttribute("href") || "";
+            if (href.indexOf(item.id) >= 0) {
+                item.element.style.border = "3px solid #45C761";
+                item.element.style.boxSizing = "border-box";
+            }
+        }
+    }
+
+    // --- MAIN LOOP ---
     async function startLoop() {
+        scriptIsRunning = true;
+        mainBtn.textContent = "Cancel Script";
+        mainBtn.style.backgroundColor = "#dc3545";
         showToast("Starting Auto-Scroll & Claim...", "success");
 
         let previousHeight = 0;
         let noChangeCount = 0;
         let totalAdded = 0;
 
-        while(true) {
+        while (scriptIsRunning) {
             const currentItems = scanVisibleItems();
-            console.log(`Scanned ${currentItems.length} items in current view`);
+            console.log("[FAB] scanned", currentItems.length, "items in current view");
 
-            const addedNow = await processItems(currentItems);
-            totalAdded += addedNow;
+            // Batch ownership check via the official API (best-effort)
+            const toCheck = currentItems.filter(i => !processedIds.has(i.id)).map(i => i.id).slice(0, 200);
+            const ownedMap = await fetchOwnedMap(toCheck);
 
-            previousHeight = document.body.scrollHeight;
+            const result = await processItems(currentItems, ownedMap);
+            if (result.fatal) {
+                scriptIsRunning = false;
+                mainBtn.textContent = "Failed. Refresh Page.";
+                mainBtn.style.backgroundColor = "#dc3545";
+                break;
+            }
+            if (!scriptIsRunning) break;
+            totalAdded += result.added;
+
+            previousHeight = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
             window.scrollTo({ left: 0, top: document.body.scrollHeight, behavior: "smooth" });
 
-            showToast(`Scrolling... (Session Total: ${totalAdded})`, "warning", 2000);
-            await new Promise(r => setTimeout(r, 3000));
+            showToast("Scrolling... (Session Total: " + totalAdded + ")", "warning", 2000);
+            await cancellableDelay(3000);
+            if (!scriptIsRunning) break;
 
-            let newHeight = document.body.scrollHeight;
-
+            const newHeight = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
             if (newHeight <= previousHeight) {
                 noChangeCount++;
-                console.log(`Page height didn't change. Attempt ${noChangeCount}/3`);
+                console.log("[FAB] page height unchanged, attempt", noChangeCount, "/4");
 
-                // Jiggle scroll to trigger observers
+                // Jiggle scroll to trigger lazy-load observers
                 window.scrollBy(0, -300);
-                await new Promise(r => setTimeout(r, 500));
+                await cancellableDelay(500);
                 window.scrollTo(0, document.body.scrollHeight);
-                await new Promise(r => setTimeout(r, 2000));
+                await cancellableDelay(2000);
 
                 if (noChangeCount >= 4) {
                     showToast("Finished! No new items loading.", "success", 5000);
+                    scriptIsRunning = false;
+                    mainBtn.textContent = "Done!";
+                    mainBtn.style.backgroundColor = "#45C761";
                     break;
                 }
             } else {
                 noChangeCount = 0;
             }
         }
+
+        // Reset UI after a manual cancel
+        if (mainBtn && mainBtn.textContent === "Stopping...") {
+            showToast("Script Cancelled.", "warning");
+            mainBtn.textContent = "Get Free Assets";
+            mainBtn.style.backgroundColor = "#45C761";
+        }
     }
 
     // --- UI & INIT ---
     function addControls() {
-        if(document.getElementById('fab-auto-btn')) return;
+        if (document.getElementById("fab-auto-btn")) return;
 
         notificationQueueContainer = document.createElement("div");
         Object.assign(notificationQueueContainer.style, {
-            position: 'fixed', bottom: '20px', right: '20px', zIndex: '10000',
-            display: 'flex', flexDirection: 'column', alignItems: 'flex-end', pointerEvents: 'none'
+            position: "fixed", bottom: "20px", right: "20px", zIndex: "10000",
+            display: "flex", flexDirection: "column", alignItems: "flex-end", pointerEvents: "none"
         });
         document.body.appendChild(notificationQueueContainer);
 
-        const btn = document.createElement("button");
-        btn.id = 'fab-auto-btn';
+        mainBtn = document.createElement("button");
+        mainBtn.id = "fab-auto-btn";
 
-        // Check if we are on the homepage (or language variant homepages)
-        const isHomePage = window.location.pathname === "/" || window.location.pathname === "/zh-cn";
+        // STRICT CHECK: only run the scraper on the search page
+        const isSearchPage = window.location.pathname.startsWith("/search");
 
-        if (isHomePage) {
-            btn.textContent = "Go to Free Search";
-            btn.style.backgroundColor = "#007bff"; // Blue for navigation
+        if (!isSearchPage) {
+            mainBtn.textContent = "Go to Free Search";
+            mainBtn.style.backgroundColor = "#007bff";
         } else {
-            btn.textContent = "Get Free Assets";
-            btn.style.backgroundColor = "#45C761"; // Green for action
+            mainBtn.textContent = "Get Free Assets";
+            mainBtn.style.backgroundColor = "#45C761";
         }
 
-        Object.assign(btn.style, {
+        Object.assign(mainBtn.style, {
             position: "fixed", bottom: "80px", right: "20px", zIndex: "2147483647",
             padding: "12px 24px", color: "white",
             border: "2px solid white", borderRadius: "8px", fontWeight: "bold",
@@ -267,22 +424,23 @@
             fontFamily: "sans-serif"
         });
 
-        btn.onclick = () => {
-            if (isHomePage) {
-                // Redirect to search page with is_free=1
+        mainBtn.onclick = () => {
+            if (!isSearchPage) {
+                // Redirect to the free-asset search page
                 window.location.href = "https://www.fab.com/search?&is_free=1";
             } else {
-                // Run the scraper
-                btn.disabled = true;
-                btn.textContent = "Running... (Check Console)";
-                btn.style.backgroundColor = "#e0e0e0";
-                btn.style.color = "#666";
-                btn.style.cursor = "default";
-                startLoop();
+                if (!scriptIsRunning) {
+                    startLoop();
+                } else {
+                    // Cancel sequence
+                    scriptIsRunning = false;
+                    mainBtn.textContent = "Stopping...";
+                    mainBtn.style.backgroundColor = "#ffc107";
+                }
             }
         };
 
-        document.body.appendChild(btn);
+        document.body.appendChild(mainBtn);
         window.fabRun = startLoop;
     }
 
@@ -291,5 +449,4 @@
     } else {
         window.addEventListener("DOMContentLoaded", addControls);
     }
-
 })();
