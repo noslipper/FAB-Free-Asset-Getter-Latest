@@ -5,6 +5,7 @@
 // @description A script to get all free assets from the FAB marketplace. Fork of the original by subtixx.
 // @author      noslipper
 // @homepageURL https://github.com/noslipper/FAB-Free-Asset-Getter-Latest
+// @homepageURL https://greasyfork.org/zh-CN/scripts/534044-fab-free-asset-getter
 // @supportURL  https://github.com/noslipper/FAB-Free-Asset-Getter-Latest/issues
 // @match       https://www.fab.com/*
 // @grant       none
