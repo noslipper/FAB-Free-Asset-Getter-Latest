@@ -1,70 +1,48 @@
+**中文** · [English](#fab-free-asset-getter)
+
 # FAB免费资产获取器
 
-[English Version](#fab-free-asset-getter)
-
-这是一个Tampermonkey脚本，可以帮助你一键获取FAB商城中的所有免费资产。
+这是一个 Tampermonkey 脚本，在 fab.com 上把免费资产批量收进你的 FAB 库。
 
 ## 功能
 
-- 在任意 `fab.com` 页面右下角提供 **「FAB 批量入库」** 面板
-- 支持**任何免费资产搜索页**：全站免费（`/search?is_free=1`）、单个发行商（`&sellers=...`）、关键词、分类——页面 URL 上的筛选条件会原样带进接口
-- **边扫边入库**：扫一批 → 立刻入库这批 → 再扫下一批，几秒内就能看到进度，不用等到全量扫完
-- **气泡瀑布提醒**：每入库一个资产，就在面板正上方弹出一个气泡（标题 + 累计序号），最新的贴着面板、旧的向上瀑布式堆叠，约 6 秒后淡出
-- **揭示队列连播**：已入库但还没进入视野的卡片排进队列，页面每 450ms 跳到下一张，落位瞬间补画徽章并播一次扫光，一张接一张连闪。**扫描本身绝不往下滚页**——队列里还没有 DOM 节点的卡片只排队等待，不会为了找卡片把页面拖下去，你随手往下滚，滚到哪张就当场闪哪张
-- **14 种语言自动匹配**：面板跟随站点自己的语言设置（先看 `<html lang>`，再看 `EPIC_LOCALE` cookie，最后用浏览器语言），覆盖 FAB 语言菜单里的全部条目——English / 简体中文 / 繁體中文 / 日本語 / 한국어 / Deutsch / Français / Español (ES·LA) / Italiano / Polski / Português (BR) / Русский / Türkçe / العربية（阿拉伯语自动 RTL）。缺失词条回退英文，不会出现空白或键名
-- **批量数值可撤销**：滑杆按固定档位走（1 / 10 / 20 / 50 / 100 / 200 / 300 / 500 / 1000 / 2000 / 3000 / 4000 / 5000），数字框可任意输入；后面 `↺` 一点回到默认 100
-- **两个开关并排**：左「跟随卡片滚动」、右「入库特效」，均默认开启
-- **卡片即时变成「已保存在我的库中」**：刚入库的卡片直接就地改成站点原生样式（同 fabkit 字体、字号与 `edsicon-check-circle-filled` 小对号图标），不用刷新页面；之后滚出来的卡片也会补上
-- **按页面自身的筛选与排序扫描**：URL 上的 `q` / `sellers` / `categories` / `tags` / `asset_formats` / `sort_by`，以及路径里的 `channels/<slug>`、`categories/<...>` 全部原样带进接口，面板上会写明本次实际使用的条件
-- **两个快捷跳转**（与「开始入库」「清空记录」同一行、配色区分）：带 Quixel 图标的 **Megascan** 直达 Quixel Megascans 在虚幻引擎频道的资产页；**免费资产** 直达虚幻引擎频道的免费资产页
-- 批量大小可调：滑杆 1~5000（默认 100），右侧数字框可手输任意值，**不受滑杆范围限制**
-- `暂停` 后面板会出现 **「入库(n)」** 按钮，把已经扫出来、还没入库的资产手动入库
-- 不走页面滚动，直接调 FAB 接口：游标翻页 + 24 条一批查归属 + 并发 `add-to-library`
-- **索引匿名读取公开清单**：登录态索引约 2000 条即截断（触发限速还会返回空结果），公开索引才是完整的
-- **自动判断是否需要查归属**：当站点设置了「不显示库内资产」时，搜索结果本身就只有未入库的，脚本会自动跳过归属检查（行为检测，不是写死开关）；可用 `CONFIG.ownedCheck = "on" / "off"` 强制
-- 自动跳过库中已有的资产、之前几轮已领取的资产，以及接口拒绝直接领取的 bundle（捆绑包）
-- 进度写入 `localStorage`（游标 + 已处理 id，按搜索范围区分），刷新页面后可续跑
-- 自适应并发：遇到 FAB 限速（返回 HTML 风控页 / 429）自动降并发并退避
-- 实时面板：已扫描 / 队列 / 新增 / 跳过 / 失败、每秒条数、当前游标页
-- 同一商品同时有个人版与专业版时，默认直接用搜索里带的 offer id 领取；只有领取失败才回退去查详情挑授权（`CONFIG.preferProfessional` 打开则始终先查详情）
+- 任意 `fab.com` 页面右下角出现「FAB 批量入库」面板，点一下就开始扫描并领取
+- 扫描范围跟着页面走：全站免费、某个发行商、关键词、分类、频道页，页面上的筛选与排序都算数
+- 边扫边存，速度约每秒 12 条；中途停下可以接着上次继续
+- 入库后卡片当场变成「已保存在我的库中」并扫一道光，面板上方同时弹出气泡提示
+- 一次存多少可调：滑杆 13 个档位（1 ~ 5000），也可直接手输，`↺` 回到默认 100
+- 两个开关：跟随卡片滚动、入库特效，默认开启
+- 界面支持 14 种语言，自动跟随站点语言
+- 两个快捷入口：**Megascan** 带 Quixel 图标，直达 Quixel Megascans 的虚幻引擎频道页；**免费资产** 直达该频道的免费页面
 
 ## 安装方法
 
-1. 首先安装Tampermonkey浏览器扩展：
+1. 先装 Tampermonkey 扩展：
    - Chrome: [Tampermonkey](https://chrome.google.com/webstore/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo)
    - Firefox: [Tampermonkey](https://addons.mozilla.org/en-US/firefox/addon/tampermonkey/)
    - Edge: [Tampermonkey](https://microsoftedge.microsoft.com/addons/detail/tampermonkey/iikmkjmpaadaobahmlepeloendndfphd)
 
 2. 安装脚本：
    - 方法1：在 [Greasy Fork](https://greasyfork.org/zh-CN/scripts/534044-fab-free-asset-getter) 页面点击「安装此脚本」
-   - 方法2：点击[这里](chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/options.html#nav=utils-tab)打开Tampermonkey的实用工具标签，然后从URL安装：
+   - 方法2：点击[这里](chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/options.html#nav=utils-tab)打开 Tampermonkey 的实用工具标签，然后从 URL 安装：
      ```
      https://raw.githubusercontent.com/noslipper/FAB-Free-Asset-Getter-Latest/refs/heads/main/fab.js
      ```
-   - 方法3：打开Tampermonkey Dashboard -> 添加新脚本，然后复制粘贴`fab.js`中的内容
+   - 方法3：打开 Tampermonkey Dashboard -> 添加新脚本，复制粘贴 `fab.js` 的内容
 
 ## 使用方法
 
-1. 登录 FAB 账号，打开要清空的搜索页：
-   - 全站免费资产：`https://www.fab.com/search?is_free=1`
-   - 单个发行商（如 Quixel Megascans）：`https://www.fab.com/search?is_free=1&sellers=o-cbf5bbfdb340d6a839b5520cb31328`
-   - 关键词 / 分类等筛选条件直接沿用页面 URL
-2. 设置 **「批量」** 值：滑杆 1~5000，或直接在数字框里输入（想超过 5000 也能输）
-3. 点击 **「开始入库」**：扫一批 → 入库这一批 → 继续扫下一批，不需要滚动页面，也不需要反复刷新
-4. `暂停` 会停止扫描与入库，已扫描的资产留在队列里，面板出现 **「入库(n)」** 按钮可手动入库这些资产；`继续` 恢复运行，`停止` 中止，`清空记录` 清掉游标缓存
-5. 支持断点续跑：游标与已处理 id 按搜索范围缓存，刷新后再次运行会从断点继续
+1. 登录 FAB，打开要处理的页面，例如全站免费 `https://www.fab.com/search?is_free=1`
+2. 按需设置「批量」，点「开始入库」
+3. 要停就点「暂停」，已扫到的点「入库(n)」补领；「清空记录」清掉断点
 
 ## 注意事项
 
-- 使用脚本前请确保已登录FAB账号
-- 脚本会跳过已经在你库中的资产
-- 如果遇到问题，可以尝试刷新页面后再使用
-- 脚本适用于所有FAB商城页面，包括搜索结果
-- 需要在浏览器的扩展程序页面开启开发者模式
-- **<span style="color:#e53935;font-weight:bold">Edge浏览器：必须开启Tampermonkey的「允许用户脚本」开关</span>**（edge://extensions -> Tampermonkey -> 详细信息 -> 允许用户脚本）。未开启时脚本虽然显示已安装、已启用，但不会在任何页面上运行。
-- 运行期间请让标签页保持在前台：后台标签的定时器会被浏览器节流，速率会明显下降
-- 参数在 `fab.js` 顶部的 `CONFIG` 里：`batchSize`（默认 100，也可在面板上调）、`concurrency`（默认 12）、`maxConcurrency`（16）、`minConcurrency`（4）、`indexConcurrency`（8）、`waveDelay` / `waveJitter`（同一工作线程两条之间休息 30ms + 随机 90ms）、`cooldownEvery` / `cooldownMs`（每入库 1000 条冷却 2.5 秒）、`maxPages`（默认 420，把单次扫描收住）、`ownedCheck`（`"auto"` / `"on"` / `"off"`）、`preferProfessional`（默认 `false`：直接用搜索里带的 offer id，只有领取失败才回退查详情）
-- 如果 FAB 开始软风控，扫描阶段会自动暂停重试（面板显示「疑似风控」），此时把 `concurrency` 调小并等待几分钟即可
+- 使用前请先登录 FAB 账号
+- 已在库中的资产会自动跳过
+- Edge 需在扩展页开启 Tampermonkey 的「允许用户脚本」开关（edge://extensions -> Tampermonkey -> 详细信息 -> 允许用户脚本），否则脚本不会运行
+- 运行时让标签页保持在前台，后台标签会被浏览器降速
+- 遇到 FAB 限速脚本会自动放慢并等待，稍等片刻即可
 
 ## 版本历史
 
@@ -87,31 +65,18 @@ AGPL-3.0-or-later
 
 # FAB Free Asset Getter
 
-[中文版本](#fab免费资产获取器)
-
-A Tampermonkey script that helps you automatically collect all free assets from the FAB marketplace with one click.
+A Tampermonkey script that collects all free assets from the FAB marketplace into your library in bulk.
 
 ## Features
 
-- Adds a **"FAB 批量入库 / Bulk Import"** panel to any `fab.com` page (bottom-right)
-- Works on **any free-asset search**: the whole free catalogue (`/search?is_free=1`), one seller (`&sellers=...`), a keyword, a category — whatever filters the page has are carried into the API scan
-- **Streaming pipeline**: scans a batch, imports that batch, scans the next one — progress is visible from the first seconds instead of after a full scan
-- **Bubble feed**: every asset that lands in the library pops up as a bubble right above the panel, newest nearest the panel and older ones cascading upward
-- **Reveal queue**: cards imported but still out of view line up; the page jumps to them (every 450 ms) and each one flips with its sweep the moment it lands, so the flips cascade instead of playing off screen. Scanning itself never scrolls the page — a queued card with no DOM node just waits for you to scroll there
-- **14 languages, picked automatically**: the panel follows the site's own language setting (`<html lang>`, then the `EPIC_LOCALE` cookie, then the browser language) across every locale in Fab's language menu (English, 简中, 繁中, 日本語, 한국어, Deutsch, Français, Español (ES/LA), Italiano, Polski, Português (BR), Русский, Türkçe, العربية — RTL for Arabic)
-- **Cards flip to "已保存在我的库中" instantly**: the card you just imported is repainted with Fab's own success label (same fabkit typography, size and check-circle icon), no page reload needed; cards that scroll into view later get repainted too
-- **Scans with the page's own filters and ordering**, carried straight from the URL (`q`, `sellers`, `categories`, `tags`, `asset_formats`, `sort_by`) plus the path segment (`channels/<slug>`, `categories/<...>`); the panel shows exactly what will be sent
-- **Two quick jumps** (on the same row as 开始入库 and 清空记录, coloured apart from the run buttons): **Megascan** with the Quixel mark opens Quixel Megascans inside the Unreal Engine channel; **Free assets** opens the free listings of that channel
-- Adjustable batch size: slider 1–5000 (default 100) plus a free-form number box that is **not** limited to the slider range
-- After `暂停` a **入库(n)** button appears and imports everything already scanned
-- Talks to the FAB API instead of scrolling the page: cursor-paginated listing index, 24-id batched ownership checks, parallel `add-to-library` calls
-- Reads the catalogue **anonymously**: FAB's logged-in search index silently truncates around 2 000 hits (and returns empty pages once it starts throttling), while the public index is complete
-- **Ownership check is skipped automatically** when the account hides assets already in the library (Fab's "hide library items" preference): in that case search only returns unowned listings. Detection is behavioural (it is not a hard-coded flag); `CONFIG.ownedCheck = "on" | "off"` overrides it
-- Skips assets already in your library (and everything claimed in earlier runs), and silently skips bundle listings, which the API refuses to add
-- Resumes after a page reload: cursor + handled ids are cached per search scope
-- Adaptive concurrency with automatic back-off when FAB starts rate limiting
-- Live panel: scanned / queue / added / skipped / failed, items-per-second, page cursor
-- One request per asset by default: the offer id comes straight from the search payload, and the per-item detail lookup is only a fallback when a claim fails (`CONFIG.preferProfessional` forces the detail-first path)
+- A "FAB Bulk Import" panel appears in the bottom-right corner of any `fab.com` page — press start and it scans and claims for you
+- The scan follows the page: whole free catalogue, one seller, a keyword, a category or a channel page — the filters and ordering you see are the ones used
+- Scans and saves at the same time, at roughly 12 assets per second; a stopped run continues where it left off
+- Each saved asset turns its card into the site's own "saved in my library" state with a light sweep, and pops a bubble above the panel
+- Batch size is adjustable: a slider with 13 steps (1 – 5000) plus a free-form number box; `↺` restores the default 100
+- Two switches: follow the cards, and import effects — both on by default
+- The interface speaks 14 languages and follows the site's own language setting
+- Two shortcuts: **Megascan**, with the Quixel mark, opens Quixel Megascans inside the Unreal Engine channel; **Free assets** opens that channel's free listings
 
 ## Installation
 
@@ -121,43 +86,34 @@ A Tampermonkey script that helps you automatically collect all free assets from 
    - Edge: [Tampermonkey](https://microsoftedge.microsoft.com/addons/detail/tampermonkey/iikmkjmpaadaobahmlepeloendndfphd)
 
 2. Install the script:
-   - Method 1: click "Install this script" on [Greasy Fork](https://greasyfork.org/zh-CN/scripts/534044-fab-free-asset-getter)
-   - Method 2: Click [here](chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/options.html#nav=utils-tab) to open Tampermonkey's utility tab, then install from URL using:
+   - Option 1: click "Install this script" on the [Greasy Fork](https://greasyfork.org/zh-CN/scripts/534044-fab-free-asset-getter) page
+   - Option 2: open Tampermonkey's utilities tab from [here](chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/options.html#nav=utils-tab) and install from this URL:
      ```
      https://raw.githubusercontent.com/noslipper/FAB-Free-Asset-Getter-Latest/refs/heads/main/fab.js
      ```
-   - Method 3: Open Tampermonkey Dashboard -> Add New Script, then copy and paste the content of `fab.js`
+   - Option 3: open the Tampermonkey dashboard, add a new script and paste the contents of `fab.js`
 
 ## Usage
 
-1. Log into FAB and open the search page you want to drain:
-   - whole free catalogue: `https://www.fab.com/search?is_free=1`
-   - one seller (e.g. Quixel Megascans): `https://www.fab.com/search?is_free=1&sellers=o-cbf5bbfdb340d6a839b5520cb31328`
-   - any keyword / category filter you see in the URL is reused as-is
-2. Set the **批量** value (slider 1–5000, or type any number in the box).
-3. Click **"开始入库"**. The panel scans a batch, imports it, then scans the next batch.
-4. `暂停` stops scanning/importing; the assets already scanned stay in the queue and a **入库(n)** button appears to import them manually. `继续` resumes, `停止` aborts, `清空记录` clears the cached cursor.
-5. Refresh-safe: the cursor and the handled ids are cached per search scope, so a re-run continues where it stopped.
+1. Sign in to FAB and open the page you want to work on, for example the whole free catalogue at `https://www.fab.com/search?is_free=1`
+2. Set the batch size if you need to, then press Start
+3. Press Pause to stop; anything already scanned can be saved with the Import(n) button, and Clear wipes the saved progress
 
 ## Notes
 
-- Make sure you are logged into your FAB account before using the script
-- The script will skip assets that are already in your library
-- If you encounter any issues, try refreshing the page and trying again
-- The script works on all FAB marketplace pages, including search results
-- You need to enable Developer Mode in your browser's extensions page
-- **<span style="color:#e53935;font-weight:bold">Edge only: you must enable the "Allow user scripts" switch for Tampermonkey</span>** (edge://extensions -> Tampermonkey -> Details -> Allow user scripts). Without it, the script will not run on any page even though it appears to be installed and enabled.
-- Keep the tab in the foreground while it runs: background tabs get their timers throttled and the throughput drops
-- Tuning knobs live in the `CONFIG` object at the top of `fab.js`: `batchSize` (default 100), `concurrency` (default 12), `maxConcurrency` (16), `minConcurrency` (4), `indexConcurrency` (8), `waveDelay` / `waveJitter` (30 / 90 ms spread between two assets on a worker), `cooldownEvery` / `cooldownMs` (a 2.5 s break every 1000 imports), `maxPages` (default 420 — bounds one run), `ownedCheck` (`"auto"` / `"on"` / `"off"`), `preferProfessional` (default `false`: use the offer id straight from the search payload and only fall back to the detail lookup when a claim fails)
-- If FAB starts soft-blocking, the scan pauses and reports "疑似风控" — lower `concurrency` and wait a few minutes
+- Sign in to your FAB account first
+- Assets already in your library are skipped automatically
+- On Edge you must enable Tampermonkey's "Allow user scripts" switch (edge://extensions -> Tampermonkey -> Details -> Allow user scripts), otherwise the script will not run at all
+- Keep the tab in the foreground: background tabs get their timers throttled
+- If FAB starts throttling, the script slows down and waits by itself — a short pause is enough
 
 ## Version History
 
 - **v3.7.1** — what changed:
   - **Import speed**: instead of clicking through the page one item at a time, assets are saved in batches, lifting the rate from about 1 per second to about 12 per second; a stopped run picks up where it left off, and the script slows down and waits by itself when the site starts throttling.
-  - **Scan and save at once**: saving starts as soon as a batch is read, no need to finish scanning first; the batch size is yours to set; after a pause, "入库(n)" saves everything already scanned in one go.
+  - **Scan and save at once**: saving starts as soon as a batch is read, no need to finish scanning first; the batch size is yours to set; after a pause, Import(n) saves everything already scanned in one go.
   - **Follows the page**: search term, seller, category and sorting all match what the page is showing, including when you come in from a channel page; if your account already hides library items, the duplicate check is skipped.
-  - **Visible progress**: a bubble pops up above the panel for each saved asset; the matching card turns into "已保存在我的库中" on the spot with a light sweep; cards outside the viewport queue up and light up one by one as you scroll to them.
+  - **Visible progress**: a bubble pops up above the panel for each saved asset; the matching card switches to the saved state on the spot with a light sweep; cards outside the viewport queue up and light up one by one as you scroll to them.
   - **Small details**: the batch slider stops at 13 whole steps (1 / 10 / 20 / 50 / 100 … 5000) and `↺` puts it back to 100; scanning never scrolls the page by itself; the interface language follows the site and covers 14 languages.
   - **Shortcuts**: two new jump buttons, **Megascan** with the Quixel mark and **Free assets**, open Quixel Megascans inside the Unreal Engine channel and that channel's free listings; their colours differ from the run buttons and the labels follow the interface language.
 - v2.4.2: Updated to match the latest FAB website
