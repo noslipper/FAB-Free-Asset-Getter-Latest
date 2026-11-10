@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        FAB Free Asset Getter
 // @namespace   https://greasyfork.org/en/users/313682-没拖鞋
-// @version     3.7.1
+// @version     3.7.2
 // @description Bulk-import free FAB assets (whole free catalogue or one seller) into your library through the FAB API: streaming scan-and-import in adjustable batches, optional ownership check, resumable cursor. Fork of the original by subtixx.
 // @author      noslipper
 // @homepageURL https://greasyfork.org/zh-CN/scripts/534044-fab-free-asset-getter
@@ -44,8 +44,8 @@
      * ------------------------------------------------------------------ */
 
     const BASE_HOST = "https://www.fab.com";
-    const MEGASCAN_URL = BASE_HOST + "/channels/unreal-engine?sellers=o-cbf5bbfdb340d6a839b5520cb31328";
-    const UE_FREE_URL = BASE_HOST + "/channels/unreal-engine?is_free=1";
+    const MEGASCAN_URL = BASE_HOST + "/search?sort_by=-firstPublishedAt&is_free=1&sellers=o-cbf5bbfdb340d6a839b5520cb31328";
+    const UE_FREE_URL = BASE_HOST + "/search?sort_by=-firstPublishedAt&is_free=1";
     // Quixel Megascans mark (white on transparent), inlined so the button
     // never depends on a CDN URL.
     const QUIXEL_LOGO = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABYAAAAWCAYAAADEtGw7AAABS0lEQVR42t2UO07DUBBF79gpAkI0QOhSRRAoaGEpIFGxAvbAEpCQYAOIEhZAeqj5VBShSIkoCALFPhSMxZOxjZPQwFTjeTPH73NnpH9pQBT48W8ArQgExIBNCmwE35vAJdADtoJ4o/YPwkSgDRwDCV+WACdAu6imEgo0gX1g4LBRAM78gec06xzfgBZwxXe7AM4L4tfAclZf+vJA13c1AlLgDtgJ8raBW1/L8tby6ikCd4Bn380j0MrWg5wloO/3/QSs5sFRwa1YEH+VNHTJ8VlLLGko6cXz5iQleUg0ocRTSfOS+pJ2JT0AZmZpFRgvlKQZSbNmlvhJzP1FSUeSOmZ2Jgkzo7Jtaz7ePXAD7GVyK9XyFHLrAQulchujQcIuTIF3YL1UbmO0dAocAgfAm8dWfgSPOYQ2gFOgWwtcc2zGU8/oskEfduPftw/UR04OA/QiCgAAAABJRU5ErkJggg==";
@@ -2320,7 +2320,7 @@
         const head = document.createElement("div");
         Object.assign(head.style, { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" });
         const title = document.createElement("strong");
-        title.textContent = t("name") + " v3.7.1";
+        title.textContent = t("name") + " v3.7.2";
         title.style.fontSize = "13px";
         const phase = document.createElement("span");
         phase.textContent = t("idle");

@@ -13,7 +13,7 @@
 - 一次存多少可调：滑杆 13 个档位（1 ~ 5000），也可直接手输，`↺` 回到默认 100
 - 两个开关：跟随卡片滚动、入库特效，默认开启
 - 界面支持 14 种语言，自动跟随站点语言
-- 两个快捷入口：**Megascan** 带 Quixel 图标，直达 Quixel Megascans 的虚幻引擎频道页；**免费资产** 直达该频道的免费页面
+- 两个快捷入口：**Megascan** 带 Quixel 图标，直达 Quixel Megascans 的免费资产（最新发布排序）；**免费资产** 直达全站免费资产（最新发布排序）
 
 ## 安装方法
 
@@ -46,13 +46,13 @@
 
 ## 版本历史
 
-- **v3.7.1** — 主要变化：
+- **v3.7.2** — 主要变化：
   - **入库速度**：不再一条条点页面上的按钮，改成成批把资产存进库里，速度从每秒 1 条左右提到每秒 12 条左右；中途停下可以接着上一次继续，网站限速时会自动放慢等待。
   - **边扫边存**：读到一批就开始存，不用等全部扫完；一次存多少可以自己调；暂停后点「入库(n)」能把已经扫描的一次存完。
   - **跟着页面走**：搜索词、发行商、分类、排序都沿用页面当前的条件，从频道页进来也一样；账号里已经设了「不显示库内资产」时，脚本不再重复核对。
   - **看得见的进度**：每存好一条，面板上方弹一条气泡；对应卡片当场变成「已保存在我的库中」并扫一道光；这一屏看不到的卡片会排队，滚到哪儿就依次亮到哪儿。
   - **操作细节**：批量滑杆停在 1 / 10 / 20 / 50 / 100 … 5000 共 13 个整数档，`↺` 回到默认的 100；扫描时页面不会自己乱滚；界面语言跟着站点自动切换，覆盖 14 种语言。
-  - **快捷入口**：新增带 Quixel 图标的 **Megascan** 与 **免费资产** 两个跳转按钮，分别直达 Quixel Megascans 在虚幻引擎频道的资产页、以及该频道的免费页面；按钮颜色与运行按钮区分，文字随界面语言变化。
+  - **快捷入口**：新增带 Quixel 图标的 **Megascan** 与 **免费资产** 两个跳转按钮，分别打开 Quixel Megascans 的免费资产与全站免费资产，均按最新发布排序；按钮颜色与运行按钮区分，文字随界面语言变化。
 - v2.4.2：更新以匹配最新版FAB网站
 - v2.0：完全重写以匹配新版FAB网站
 - v1.0：初始版本
@@ -76,7 +76,7 @@ A Tampermonkey script that collects all free assets from the FAB marketplace int
 - Batch size is adjustable: a slider with 13 steps (1 – 5000) plus a free-form number box; `↺` restores the default 100
 - Two switches: follow the cards, and import effects — both on by default
 - The interface speaks 14 languages and follows the site's own language setting
-- Two shortcuts: **Megascan**, with the Quixel mark, opens Quixel Megascans inside the Unreal Engine channel; **Free assets** opens that channel's free listings
+- Two shortcuts: **Megascan**, with the Quixel mark, opens the Quixel Megascans free listings sorted by newest; **Free assets** opens the whole free catalogue in the same order
 
 ## Installation
 
@@ -109,13 +109,13 @@ A Tampermonkey script that collects all free assets from the FAB marketplace int
 
 ## Version History
 
-- **v3.7.1** — what changed:
+- **v3.7.2** — what changed:
   - **Import speed**: instead of clicking through the page one item at a time, assets are saved in batches, lifting the rate from about 1 per second to about 12 per second; a stopped run picks up where it left off, and the script slows down and waits by itself when the site starts throttling.
   - **Scan and save at once**: saving starts as soon as a batch is read, no need to finish scanning first; the batch size is yours to set; after a pause, Import(n) saves everything already scanned in one go.
   - **Follows the page**: search term, seller, category and sorting all match what the page is showing, including when you come in from a channel page; if your account already hides library items, the duplicate check is skipped.
   - **Visible progress**: a bubble pops up above the panel for each saved asset; the matching card switches to the saved state on the spot with a light sweep; cards outside the viewport queue up and light up one by one as you scroll to them.
   - **Small details**: the batch slider stops at 13 whole steps (1 / 10 / 20 / 50 / 100 … 5000) and `↺` puts it back to 100; scanning never scrolls the page by itself; the interface language follows the site and covers 14 languages.
-  - **Shortcuts**: two new jump buttons, **Megascan** with the Quixel mark and **Free assets**, open Quixel Megascans inside the Unreal Engine channel and that channel's free listings; their colours differ from the run buttons and the labels follow the interface language.
+  - **Shortcuts**: two new jump buttons, **Megascan** with the Quixel mark and **Free assets**, open the Quixel Megascans free listings and the whole free catalogue, both sorted by newest; their colours differ from the run buttons and the labels follow the interface language.
 - v2.4.2: Updated to match the latest FAB website
 - v2.0: Rewritten to match the new FAB website
 - v1.0: Initial version
