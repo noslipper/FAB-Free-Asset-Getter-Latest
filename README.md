@@ -50,6 +50,8 @@
 
 ## 版本历史
 
+- **v3.7.8** — 主要变化：
+  - **只加免费档**：同一资产的专业版可能单独收费（个人版免费、专业版标价 333 之类），加购改为只在免费档里挑，优先专业版、没有才用个人版，购物车里不会再出现待付款条目。
 - **v3.7.7** — 主要变化：
   - **合集不再被误判为已拥有**：账号只要拥有合集里的任意一条子资产，状态接口就返回「已拥有」，整包因此被跳过。合集现在不参与这项判断，一律走购物车。
   - **合集直通购物车**：合集不再先发一次注定返回 400 的领取请求，直接取许可加购，单条少一趟往返。
@@ -132,6 +134,8 @@ A Tampermonkey script that collects all free assets from the FAB marketplace int
 
 ## Version History
 
+- **v3.7.8** — what changed:
+  - **Free tiers only**: the professional tier of one listing can be sold separately while the personal tier is free, so carting now picks among free tiers only, preferring professional and falling back to personal. No payable line can enter the cart.
 - **v3.7.7** — what changed:
   - **Bundles are no longer misread as owned**: owning any single listing inside a bundle makes the state endpoint answer acquired, which used to skip the whole bundle. Bundles are now excluded from that check and always go to the cart.
   - **Bundles go straight to the cart**: the claim request that could only return 400 is skipped, so each bundle costs one less round trip.

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        FAB Free Asset Getter
 // @namespace   https://greasyfork.org/en/users/313682-没拖鞋
-// @version     3.7.7
+// @version     3.7.8
 // @description Bulk-import free FAB assets (whole free catalogue or one seller) into your library through the FAB API: streaming scan-and-import in adjustable batches, optional ownership check, resumable cursor. Fork of the original by subtixx.
 // @author      noslipper
 // @homepageURL https://greasyfork.org/zh-CN/scripts/534044-fab-free-asset-getter
@@ -1541,17 +1541,30 @@
         }
         if (!data) return null;
         const list = data.licenses || [];
+        // Only a licence that is actually free may be parked in the cart: a
+        // professional tier can cost money even when the personal one is free,
+        // and the cart would then wait for a payment. Among the free tiers the
+        // professional one still wins, because it grants more.
+        const free = list.filter(function (lic) {
+            const pt = (lic && lic.priceTier) || {};
+            return pt.price === 0 || pt.price === "0" ||
+                pt.discountedPrice === 0 || pt.discountedPrice === "0";
+        });
         let pick = null;
-        for (let i = 0; i < list.length; i++) {
-            const lic = list[i] || {};
-            const slug = (lic.slug || "").toLowerCase();
-            if (slug === "professional" && CONFIG.preferProfessional) { pick = lic; break; }
-            if (slug === "personal") { if (!pick) pick = lic; }
+        for (let i = 0; i < free.length; i++) {
+            const slug = (free[i].slug || "").toLowerCase();
+            if (slug === "professional") { pick = free[i]; break; }
+            if (slug === "personal" && !pick) pick = free[i];
         }
+        if (!pick) pick = free[0] || null;
         if (!pick) {
-            for (let i = 0; i < list.length; i++) {
-                if (list[i] && list[i].listingLicenseId) { pick = list[i]; break; }
-            }
+            // Nothing free: fall back to a tier that at least carries an id, but
+            // only when the listing itself claims a zero price.
+            const zeroish = list.filter(function (lic) {
+                const pt = (lic && lic.priceTier) || {};
+                return !pt.price && !pt.discountedPrice;
+            });
+            pick = zeroish[0] || null;
         }
         return pick && pick.listingLicenseId ? pick.listingLicenseId : null;
     }
@@ -2830,7 +2843,7 @@
         const head = document.createElement("div");
         Object.assign(head.style, { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" });
         const title = document.createElement("strong");
-        title.textContent = t("name") + " v3.7.7";
+        title.textContent = t("name") + " v3.7.8";
         title.style.fontSize = "13px";
         const headRight = document.createElement("span");
         headRight.style.cssText = "display:inline-flex;align-items:center;gap:6px;min-width:0";
@@ -3103,6 +3116,8 @@
         scope: describeScope,
         markSaved: markSavedOnPage,
         doneFx: playDoneFx,
+        cartLicense: resolveCartLicense,
+        addToCart: addToCart,
         revealInfo: function () {
             return {
                 pending: revealQueue.length,
