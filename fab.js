@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        FAB Free Asset Getter
 // @namespace   https://greasyfork.org/en/users/313682-没拖鞋
-// @version     3.7.3
+// @version     3.7.4
 // @description Bulk-import free FAB assets (whole free catalogue or one seller) into your library through the FAB API: streaming scan-and-import in adjustable batches, optional ownership check, resumable cursor. Fork of the original by subtixx.
 // @author      noslipper
 // @homepageURL https://greasyfork.org/zh-CN/scripts/534044-fab-free-asset-getter
@@ -38,9 +38,10 @@
      *   GET  /i/listings/<uid>   -> { licenses: [{slug, offerId, priceTier}] }
      *   POST /i/listings/<uid>/add-to-library  (form offer_id) -> 204
      *
-     * The catalogue index is read anonymously (credentials "omit"): FAB's
-     * logged-in search index truncates around 2 000 hits and returns empty
-     * once it starts throttling, while the public index is complete.
+     * Every read runs with the user's own session: the anonymous index is not
+     * the same catalogue the page is showing (it ignores or loosens some
+     * facets), and it is the session that owns the library, so the scan and the
+     * add-to-library call speak to the same account.
      * ------------------------------------------------------------------ */
 
     const BASE_HOST = "https://www.fab.com";
@@ -68,7 +69,7 @@
         maxConcurrency: 16,
         minConcurrency: 4,
         indexConcurrency: 8,      // parallel ownership-state chunks
-        preferProfessional: false, // only falls back to the detail lookup when a claim fails
+        preferProfessional: true,  // claim the professional tier when an asset offers one
         maxPages: 420,            // safety stop for one run
         retries: 2,
         waveDelay: 30,            // ms of rest between two assets on the same worker
@@ -1208,6 +1209,17 @@
         return q;
     }
 
+    // The scan always reads the catalogue with the user's own session.
+    // Anonymous reads are not the same index: on a filtered view the anonymous
+    // answer carries extra hits the page never shows (/search/channels/uefn plus
+    // one seller: 12 rows logged in, 24 anonymously, with a next cursor on top),
+    // so asking anonymously is what made a run scan something other than the
+    // page on screen. It is also the only index that can agree with the library
+    // add that follows, which has to use the session anyway.
+    function scanCredentials() {
+        return "same-origin";
+    }
+
     // Human-readable summary of the filters this run will actually send.
     function describeScope() {
         const q = baseParams();
@@ -1349,6 +1361,19 @@
         return lic.offerId || lic.uid || lic.listingLicenseId || null;
     }
 
+    // Does this asset offer a professional tier at all? Read from the search
+    // payload, which carries licence names but not their offer ids.
+    function hasProfessionalTier(licenses) {
+        if (!Array.isArray(licenses)) return false;
+        for (let i = 0; i < licenses.length; i++) {
+            const lic = licenses[i] || {};
+            const slug = (lic.slug || "").toLowerCase();
+            const name = ((lic.name || "") + " " + (lic.slug || "")).toLowerCase();
+            if (slug === "professional" || name.indexOf("professional") >= 0 || name.indexOf("专业") >= 0) return true;
+        }
+        return false;
+    }
+
     function findFreeOffer(licenses) {
         if (!Array.isArray(licenses) || licenses.length === 0) return null;
         let best = null;
@@ -1419,7 +1444,7 @@
         const q = baseParams();
         if (runtime.cursor) q.set("cursor", runtime.cursor);
 
-        const r = await requestJson("/i/listings/search?" + q.toString(), CONFIG.retries, "omit");
+        const r = await requestJson("/i/listings/search?" + q.toString(), CONFIG.retries, scanCredentials());
         if (r.auth) throw { fatal: "auth" };
         if (!r.ok) {
             if (runtime.pages === 0) throw { fatal: "index", message: t("logIndexFatal", r.status) };
@@ -1458,7 +1483,12 @@
                 uid: it.uid,
                 title: (it.title || "").replace(/[\n\r]+/g, " ").trim() || ("Asset " + it.uid.slice(0, 8)),
                 offerId: sp.offerId || "",
-                price: price
+                price: price,
+                // The search payload already lists the licence tiers by name (no
+                // offer id, though). Knowing a professional tier exists is enough
+                // to decide that this item needs the detail lookup, so single-tier
+                // assets keep the one-request fast path.
+                hasPro: hasProfessionalTier(it.licenses)
             });
         }
 
@@ -1490,6 +1520,13 @@
         if (nextCursor) {
             runtime.noNextStreak = 0;
             runtime.cursor = nextCursor;
+        } else if (results.length > 0 && results.length < CONFIG.pageSize) {
+            // A short page is proof the index ran out: a throttled answer still
+            // fills the window it was asked for, it only withholds the cursor.
+            // Believing this straight away ends a single-page view (a channel
+            // page with a dozen hits) in one request instead of six retries.
+            runtime.noNextStreak = 0;
+            runtime.endReached = true;
         } else {
             runtime.noNextStreak = (runtime.noNextStreak || 0) + 1;
             if (runtime.noNextStreak <= 6) {
@@ -1586,11 +1623,8 @@
         try {
             const probe = baseParams();
             probe.delete("cursor");
-            const sess = await requestJson("/i/listings/search?" + probe.toString(), 0, "same-origin");
-            const anon = await requestJson("/i/listings/search?" + probe.toString(), 0, "omit");
-            const anonN = (anon.ok && anon.data && anon.data.results) ? anon.data.results.length : 0;
+            const sess = await requestJson("/i/listings/search?" + probe.toString(), 0, scanCredentials());
             const sessRows = (sess.ok && sess.data && sess.data.results) ? sess.data.results : [];
-            if (anonN === 0) return false;                 // nothing to learn
             if (sessRows.length === 0) {                   // everything filtered out
                 runtime.hiddenLibrary = true;
                 log(t("logHiddenOn"));
@@ -1632,6 +1666,18 @@
         if (store.done[item.uid]) { runtime.stats.skipped++; return; }
 
         let offerId = item.offerId || "";
+
+        // A dual-licensed free asset must be claimed on the professional tier:
+        // the offer id the search returns is the personal one, so asking the
+        // detail endpoint first is the only way to get the professional id.
+        // One extra request, only for items that actually have that tier.
+        if (CONFIG.preferProfessional && item.hasPro) {
+            const pro = await resolveOfferId(item);
+            if (pro.auth) throw { fatal: "auth" };
+            if (pro.offerId) offerId = pro.offerId;
+            else if (pro.notFree) { store.done[item.uid] = 1; runtime.stats.skipped++; return; }
+        }
+
         if (!offerId) {
             const res = await resolveOfferId(item);
             if (res.auth) throw { fatal: "auth" };
@@ -1646,14 +1692,20 @@
 
         let added = await postAddToLibrary(item.uid, offerId);
 
-        // The search offer may be the personal-tier one while Fab wants another
-        // (professional licence, bundle edge case). Ask the detail endpoint once
-        // and retry — only on failure, so the fast path costs nothing.
+        // The professional tier can be refused (bundle edge case, licence not
+        // actually free). Then the personal offer is the one still worth trying,
+        // so the retry walks the other candidate rather than re-sending the same
+        // offer that just failed.
         if (!added.ok && !added.auth && !/bundle/i.test(added.body || "")) {
             const alt = await resolveOfferId(item);
             if (alt.auth) throw { fatal: "auth" };
-            if (alt.offerId && alt.offerId !== offerId) {
-                added = await postAddToLibrary(item.uid, alt.offerId);
+            const others = [alt.offerId, item.offerId].filter(Boolean);
+            for (let i = 0; i < others.length; i++) {
+                if (others[i] === offerId) continue;
+                added = await postAddToLibrary(item.uid, others[i]);
+                if (added.ok) break;
+                if (added.auth) throw { fatal: "auth" };
+                if (/bundle/i.test(added.body || "")) break;
             }
         }
 
@@ -2337,7 +2389,7 @@
         const head = document.createElement("div");
         Object.assign(head.style, { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" });
         const title = document.createElement("strong");
-        title.textContent = t("name") + " v3.7.3";
+        title.textContent = t("name") + " v3.7.4";
         title.style.fontSize = "13px";
         const phase = document.createElement("span");
         phase.textContent = t("idle");
