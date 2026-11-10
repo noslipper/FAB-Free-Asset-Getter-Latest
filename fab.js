@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        FAB Free Asset Getter
 // @namespace   https://greasyfork.org/en/users/313682-没拖鞋
-// @version     3.7.4
+// @version     3.7.5
 // @description Bulk-import free FAB assets (whole free catalogue or one seller) into your library through the FAB API: streaming scan-and-import in adjustable batches, optional ownership check, resumable cursor. Fork of the original by subtixx.
 // @author      noslipper
 // @homepageURL https://greasyfork.org/zh-CN/scripts/534044-fab-free-asset-getter
@@ -97,7 +97,9 @@
      * Unknown values fall back to English rather than to a guess.
      * ------------------------------------------------------------------ */
     const I18N = {
-        "en": {
+        "en": {            loginOn: "Signed in as {0}", loginOff: "Not signed in",
+            bundleNote: "{0} bundles need the cart (FAB rule)", doneAll: "All done · {0} added",
+
             navFree: "Free assets", navFreeTip: "Free assets of the Unreal Engine channel",
             name: "FAB Bulk Import",
             batch: "Batch", batchReset: "Reset batch to {0}",
@@ -161,7 +163,9 @@
             toastCsrf: "Missing CSRF token, reload the page and confirm you are signed in",
             unnamed: "(untitled asset)"
         },
-        "zh-CN": {
+        "zh-CN": {            loginOn: "已登录：{0}", loginOff: "未登录",
+            bundleNote: "{0} 条合集需在页面加入购物车（FAB 限制）", doneAll: "全部完成 · 共入库 {0} 条",
+
             navFree: "免费资产", navFreeTip: "虚幻引擎频道 · 免费资产",
             name: "FAB 批量入库",
             batch: "批量", batchReset: "恢复默认批量 {0}",
@@ -225,7 +229,9 @@
             toastCsrf: "缺少 CSRF 令牌，请刷新页面并确认已登录",
             unnamed: "(未命名资产)"
         },
-        "zh-TW": {
+        "zh-TW": {            loginOn: "已登入：{0}", loginOff: "未登入",
+            bundleNote: "{0} 個合集需在頁面加入購物車（FAB 限制）", doneAll: "全部完成 · 共入庫 {0} 項",
+
             navFree: "免費資產", navFreeTip: "虛幻引擎頻道 · 免費資產",
             name: "FAB 批次入庫",
             batch: "批次", batchReset: "恢復預設批次 {0}",
@@ -289,7 +295,9 @@
             toastCsrf: "缺少 CSRF 權杖，請重新整理頁面並確認已登入",
             unnamed: "(未命名資產)"
         },
-        "ja": {
+        "ja": {            loginOn: "{0} でログイン中", loginOff: "未ログイン",
+            bundleNote: "{0} 件のバンドルはカートでの取得が必要（FAB の仕様）", doneAll: "すべて完了 · {0} 件追加",
+
             navFree: "無料アセット", navFreeTip: "Unreal Engine チャンネルの無料アセット",
             name: "FAB 一括インポート",
             batch: "バッチ", batchReset: "バッチを既定値 {0} に戻す",
@@ -353,7 +361,9 @@
             toastCsrf: "CSRF トークンがありません。再読み込みしてログインを確認してください",
             unnamed: "（名称未設定のアセット）"
         },
-        "ko": {
+        "ko": {            loginOn: "{0} 로 로그인됨", loginOff: "로그인되지 않음",
+            bundleNote: "{0}개 번들은 장바구니가 필요합니다(FAB 규칙)", doneAll: "모두 완료 · {0}개 추가",
+
             navFree: "무료 에셋", navFreeTip: "언리얼 엔진 채널의 무료 에셋",
             name: "FAB 일괄 가져오기",
             batch: "배치", batchReset: "배치를 기본값 {0}으로 복원",
@@ -417,7 +427,9 @@
             toastCsrf: "CSRF 토큰이 없습니다. 새로고침 후 로그인을 확인하세요",
             unnamed: "(이름 없는 자산)"
         },
-        "de": {
+        "de": {            loginOn: "Angemeldet als {0}", loginOff: "Nicht angemeldet",
+            bundleNote: "{0} Bundles erfordern den Warenkorb (FAB-Regel)", doneAll: "Alles erledigt · {0} hinzugefügt",
+
             navFree: "Gratis-Assets", navFreeTip: "Kostenlose Assets im Unreal-Engine-Kanal",
             name: "FAB Massenimport",
             batch: "Stapel", batchReset: "Stapel auf {0} zurücksetzen",
@@ -481,7 +493,9 @@
             toastCsrf: "CSRF-Token fehlt, Seite neu laden und Anmeldung prüfen",
             unnamed: "(unbenanntes Asset)"
         },
-        "fr": {
+        "fr": {            loginOn: "Connecté en tant que {0}", loginOff: "Non connecté",
+            bundleNote: "{0} bundles passent par le panier (règle FAB)", doneAll: "Terminé · {0} ajoutés",
+
             navFree: "Gratuit", navFreeTip: "Ressources gratuites du canal Unreal Engine",
             name: "Import groupé FAB",
             batch: "Lot", batchReset: "Réinitialiser le lot à {0}",
@@ -545,7 +559,9 @@
             toastCsrf: "Jeton CSRF manquant, rechargez la page et vérifiez la connexion",
             unnamed: "(asset sans nom)"
         },
-        "es-ES": {
+        "es-ES": {            loginOn: "Sesión de {0}", loginOff: "Sin sesión",
+            bundleNote: "{0} paquetes requieren el carrito (regla de FAB)", doneAll: "Todo listo · {0} añadidos",
+
             navFree: "Gratis", navFreeTip: "Recursos gratis del canal Unreal Engine",
             name: "Importación masiva FAB",
             batch: "Lote", batchReset: "Restablecer lote a {0}",
@@ -609,7 +625,9 @@
             toastCsrf: "Falta el token CSRF, recarga la página y comprueba la sesión",
             unnamed: "(asset sin nombre)"
         },
-        "es-LA": {
+        "es-LA": {            loginOn: "Sesión de {0}", loginOff: "Sin sesión",
+            bundleNote: "{0} paquetes requieren el carrito (regla de FAB)", doneAll: "Todo listo · {0} añadidos",
+
             navFree: "Gratis", navFreeTip: "Recursos gratis del canal Unreal Engine",
             name: "Importación masiva FAB",
             batch: "Lote", batchReset: "Restablecer lote a {0}",
@@ -673,7 +691,9 @@
             toastCsrf: "Falta el token CSRF, recarga la página y verifica la sesión",
             unnamed: "(asset sin nombre)"
         },
-        "it": {
+        "it": {            loginOn: "Connesso come {0}", loginOff: "Non connesso",
+            bundleNote: "{0} bundle richiedono il carrello (regola FAB)", doneAll: "Tutto fatto · {0} aggiunti",
+
             navFree: "Gratis", navFreeTip: "Asset gratuiti del canale Unreal Engine",
             name: "Importazione massiva FAB",
             batch: "Lotto", batchReset: "Ripristina lotto a {0}",
@@ -737,7 +757,9 @@
             toastCsrf: "Token CSRF mancante, ricarica la pagina e verifica l'accesso",
             unnamed: "(asset senza nome)"
         },
-        "pl": {
+        "pl": {            loginOn: "Zalogowany jako {0}", loginOff: "Nie zalogowano",
+            bundleNote: "{0} paczek wymaga koszyka (zasada FAB)", doneAll: "Wszystko gotowe · dodano {0}",
+
             navFree: "Darmowe", navFreeTip: "Darmowe zasoby kanału Unreal Engine",
             name: "Import zbiorczy FAB",
             batch: "Partia", batchReset: "Przywróć partię {0}",
@@ -801,7 +823,9 @@
             toastCsrf: "Brak tokenu CSRF, odśwież stronę i sprawdź logowanie",
             unnamed: "(zasób bez nazwy)"
         },
-        "pt-BR": {
+        "pt-BR": {            loginOn: "Conectado como {0}", loginOff: "Não conectado",
+            bundleNote: "{0} pacotes exigem o carrinho (regra do FAB)", doneAll: "Tudo pronto · {0} adicionados",
+
             navFree: "Grátis", navFreeTip: "Assets gratuitos do canal Unreal Engine",
             name: "Importação em massa FAB",
             batch: "Lote", batchReset: "Restaurar lote para {0}",
@@ -865,7 +889,9 @@
             toastCsrf: "Token CSRF ausente, recarregue a página e confirme o login",
             unnamed: "(asset sem nome)"
         },
-        "ru": {
+        "ru": {            loginOn: "Вы вошли как {0}", loginOff: "Вход не выполнен",
+            bundleNote: "{0} наборов требуют корзину (правило FAB)", doneAll: "Готово · добавлено {0}",
+
             navFree: "Бесплатно", navFreeTip: "Бесплатные ассеты канала Unreal Engine",
             name: "Массовый импорт FAB",
             batch: "Пакет", batchReset: "Сбросить пакет до {0}",
@@ -929,7 +955,9 @@
             toastCsrf: "Нет токена CSRF, перезагрузите страницу и проверьте вход",
             unnamed: "(ассет без имени)"
         },
-        "tr": {
+        "tr": {            loginOn: "{0} olarak giriş yapıldı", loginOff: "Giriş yapılmadı",
+            bundleNote: "{0} paket sepet gerektirir (FAB kuralı)", doneAll: "Tamamlandı · {0} eklendi",
+
             navFree: "Ücretsiz", navFreeTip: "Unreal Engine kanalındaki ücretsiz varlıklar",
             name: "FAB Toplu İçe Aktarma",
             batch: "Toplu", batchReset: "Topluyu {0} değerine sıfırla",
@@ -994,6 +1022,9 @@
             unnamed: "(adsız varlık)"
         },
         "ar": {
+            loginOn: "تم تسجيل الدخول باسم {0}", loginOff: "لم تسجل الدخول",
+            bundleNote: "{0} حزم تتطلب السلة (قاعدة Fab)", doneAll: "اكتمل كل شيء · أضيف {0}",
+
             navFree: "أصول مجانية", navFreeTip: "أصول مجانية في قناة Unreal Engine",
             name: "استيراد FAB بالجملة",
             batch: "الدفعة", batchReset: "إعادة الدفعة إلى {0}",
@@ -1130,8 +1161,11 @@
         queue: [],                     // scanned, not yet imported
         stats: {
             indexed: 0, added: 0, skipped: 0, failed: 0,
+            bundles: 0,
             pending: 0, startedAt: 0, finishedAt: 0
-        }
+        },
+        userName: "",                  // signed-in account shown in the status row
+        userChecked: false,
     };
 
     // Persisted between reloads: cursor + what we already handled.
@@ -1615,6 +1649,22 @@
         return owned;
     }
 
+    // Who is signed in? The panel shows it next to the phase, because every
+    // request this script makes is sent as that account — and a sculpture of
+    // "why did nothing land in my library" usually starts with being signed out
+    // or being on a different account than expected.
+    async function loadMe() {
+        if (runtime.userChecked) return;
+        try {
+            const r = await requestJson("/i/users/me", 0);
+            runtime.userName = (r.ok && r.data && (r.data.displayName || r.data.name)) || "";
+        } catch (e) {
+            runtime.userName = "";
+        }
+        runtime.userChecked = true;
+        render();
+    }
+
     // Is Fab hiding assets that are already in the library? When it is,
     // search results are already "not owned", so checking is wasted work.
     async function detectHiddenLibrary() {
@@ -1722,10 +1772,13 @@
             runtime.successStreak = (runtime.successStreak || 0) + 1;
             runtime.failStreak = 0;
         } else {
-            // Bundles cannot be claimed through add-to-library; skip them quietly.
+            // Bundles cannot be claimed through add-to-library: FAB answers
+            // 400 {"detail":["Listing is a bundle."]} and offers only the cart
+            // for them. Count them apart from real skips so the panel can say
+            // why those cards never landed in the library.
             if (/bundle/i.test(added.body || "")) {
                 store.done[item.uid] = 1;
-                runtime.stats.skipped++;
+                runtime.stats.bundles = (runtime.stats.bundles || 0) + 1;
             } else {
                 runtime.stats.failed++;
                 runtime.failStreak = (runtime.failStreak || 0) + 1;
@@ -1848,6 +1901,12 @@
         // let every pending ownership check land before the consumers wind down
         await Promise.all((runtime.checkJobs || []).map(function (p) { return p.catch(function () { }); }));
         await Promise.all(workers);
+        // A page can queue its tail after the workers already saw an empty
+        // queue; drain whatever is left so "finished" really means finished.
+        if (!runtime.aborted && runtime.queue.length) {
+            const tail = runtime.queue.splice(0, runtime.queue.length);
+            await importBatch(tail);
+        }
         runtime.stats.pending = runtime.queue.length;
         saveStore();
     }
@@ -1887,6 +1946,8 @@
             } else if (runtime.endReached) {
                 setStatus(t("statusEnd", runtime.stats.added, runtime.stats.failed));
                 toast(t("toastEnd", runtime.stats.added, runtime.stats.failed), "success", 6000);
+                if (runtime.stats.bundles) log(t("bundleNote", runtime.stats.bundles));
+                playDoneFx(runtime.stats.added);
             } else {
                 setStatus(t("statusBatchEnd", runtime.stats.added));
                 toast(t("toastBatch", runtime.stats.added), "info", 4000);
@@ -2208,6 +2269,95 @@
         } catch (e) { /* animation is cosmetic only */ }
     }
 
+    // A full-screen finish: the run reached the end and the queue is empty, so
+    // the whole page is in the library. Drawn on a body-level overlay so React
+    // cannot wipe it mid-animation; it fades itself out after ~3s.
+    function playDoneFx(added) {
+        if (!runtime.effects) return;
+        try {
+            const GREEN = "69,199,97";
+            const CYAN = "120,220,255";
+            const layer = document.createElement("div");
+            layer.style.cssText = "position:fixed;inset:0;pointer-events:none;z-index:2147483001;" +
+                "display:flex;align-items:center;justify-content:center;overflow:hidden";
+            document.body.appendChild(layer);
+
+            const veil = document.createElement("div");
+            veil.style.cssText = "position:absolute;inset:0;background:radial-gradient(circle at 50% 45%," +
+                "rgba(" + GREEN + ",.22),rgba(10,12,16,.72) 70%)";
+            layer.appendChild(veil);
+
+            // three rings expanding out of the centre
+            for (let i = 0; i < 3; i++) {
+                const ring = document.createElement("div");
+                ring.style.cssText = "position:absolute;width:120px;height:120px;border-radius:50%;" +
+                    "border:2px solid rgba(" + GREEN + ",.9);box-shadow:0 0 28px rgba(" + GREEN + ",.55)";
+                layer.appendChild(ring);
+                if (ring.animate) {
+                    ring.animate([
+                        { transform: "scale(.2)", opacity: 0 },
+                        { transform: "scale(1)", opacity: 1, offset: .25 },
+                        { transform: "scale(6)", opacity: 0 }
+                    ], { duration: 1500, delay: i * 220, easing: "cubic-bezier(.16,.8,.3,1)", fill: "forwards" });
+                }
+            }
+
+            // sparkles flying outward
+            for (let i = 0; i < 26; i++) {
+                const dot = document.createElement("div");
+                const size = 4 + Math.floor(Math.random() * 5);
+                dot.style.cssText = "position:absolute;width:" + size + "px;height:" + size + "px;border-radius:50%;" +
+                    "background:rgba(" + (i % 3 === 0 ? CYAN : "235,255,240") + ",.95);" +
+                    "box-shadow:0 0 10px rgba(" + GREEN + ",.9)";
+                layer.appendChild(dot);
+                const ang = Math.random() * Math.PI * 2;
+                const dist = 140 + Math.random() * 260;
+                if (dot.animate) {
+                    dot.animate([
+                        { transform: "translate(0,0) scale(.4)", opacity: .9 },
+                        { transform: "translate(" + Math.cos(ang) * dist + "px," + Math.sin(ang) * dist + "px) scale(1)", opacity: 0 }
+                    ], { duration: 900 + Math.random() * 600, easing: "cubic-bezier(.2,.7,.3,1)", fill: "forwards" });
+                }
+            }
+
+            const card = document.createElement("div");
+            card.style.cssText = "position:relative;display:flex;flex-direction:column;align-items:center;gap:10px;" +
+                "padding:26px 34px;border-radius:16px;background:rgba(20,24,30,.92);" +
+                "border:1px solid rgba(" + GREEN + ",.55);box-shadow:0 0 40px rgba(" + GREEN + ",.45),0 16px 50px rgba(0,0,0,.55)";
+            const mark = document.createElement("div");
+            mark.style.cssText = "width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;" +
+                "background:rgba(" + GREEN + ",.16);border:2px solid rgba(" + GREEN + ",.9);color:#8ff0a6;font-size:30px;line-height:1";
+            mark.textContent = "✓";
+            const big = document.createElement("div");
+            big.style.cssText = "font-size:17px;font-weight:600;color:#eafff0;letter-spacing:.3px";
+            big.textContent = t("doneAll", added);
+            const sub = document.createElement("div");
+            sub.style.cssText = "font-size:11px;color:#8a929e";
+            sub.textContent = t("counters", runtime.stats.indexed, 0, runtime.stats.added, runtime.stats.skipped, runtime.stats.failed);
+            card.appendChild(mark); card.appendChild(big); card.appendChild(sub);
+            layer.appendChild(card);
+
+            if (card.animate) {
+                card.animate([
+                    { transform: "scale(.8) translateY(14px)", opacity: 0 },
+                    { transform: "scale(1.04) translateY(0)", opacity: 1, offset: .55 },
+                    { transform: "scale(1)", opacity: 1 }
+                ], { duration: 700, easing: "cubic-bezier(.2,1.25,.3,1)", fill: "forwards" });
+            }
+            if (veil.animate) {
+                veil.animate([{ opacity: 0 }, { opacity: 1, offset: .2 }, { opacity: 1, offset: .75 }, { opacity: 0 }],
+                    { duration: 3000, easing: "ease-out", fill: "forwards" });
+            }
+            if (layer.animate) {
+                layer.animate([{ opacity: 1 }, { opacity: 1, offset: .8 }, { opacity: 0 }],
+                    { duration: 3000, easing: "ease-out", fill: "forwards" });
+            }
+            setTimeout(function () {
+                if (layer.parentNode) layer.parentNode.removeChild(layer);
+            }, 3000);
+        } catch (e) { /* cosmetic only */ }
+    }
+
     function markSavedOnPage(uid) {
         if (!uid) return;
         importedUids.set(uid, Date.now());
@@ -2343,6 +2493,13 @@
         const rate = elapsed > 0 ? (st.added / (elapsed / 1000)) : 0;
 
         el.phase.textContent = phaseLabel(runtime.phase);
+        if (el.user) {
+            const signed = !!runtime.userName;
+            el.user.textContent = signed ? t("loginOn", runtime.userName) : (runtime.userChecked ? t("loginOff") : "");
+            el.user.style.color = signed ? "#7ee08a" : "#f0b357";
+            el.user.style.borderColor = signed ? "#2f5b39" : "#5a4620";
+            el.user.style.background = signed ? "rgba(69,199,97,.10)" : (runtime.userChecked ? "rgba(240,179,87,.10)" : "transparent");
+        }
         el.counters.textContent = t("counters", st.indexed, runtime.queue.length, st.added, st.skipped, st.failed);
         el.meta.textContent = runtime.pages
             ? t("meta", runtime.concurrency, runtime.batchSize, rate.toFixed(2), runtime.pages, fmtDuration(elapsed || 0))
@@ -2389,12 +2546,19 @@
         const head = document.createElement("div");
         Object.assign(head.style, { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" });
         const title = document.createElement("strong");
-        title.textContent = t("name") + " v3.7.4";
+        title.textContent = t("name") + " v3.7.5";
         title.style.fontSize = "13px";
+        const headRight = document.createElement("span");
+        headRight.style.cssText = "display:inline-flex;align-items:center;gap:6px;min-width:0";
+        const user = document.createElement("span");
+        user.textContent = "";
+        user.style.cssText = "font-size:11px;padding:1px 6px;border-radius:9px;border:1px solid #3a3f48;" +
+            "color:#8a929e;max-width:118px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap";
         const phase = document.createElement("span");
         phase.textContent = t("idle");
         phase.style.cssText = "opacity:.7;font-size:11px";
-        head.appendChild(title); head.appendChild(phase);
+        headRight.appendChild(user); headRight.appendChild(phase);
+        head.appendChild(title); head.appendChild(headRight);
         panel.appendChild(head);
 
         const status = document.createElement("div");
@@ -2616,12 +2780,13 @@
         el = {
             panel: panel, phase: phase, status: status, bar: bar, barLabel: barLabel,
             counters: counters, meta: meta, owner: owner, log: logLine,
-            scope: scopeText, scroll: toggleRow,
+            scope: scopeText, scroll: toggleRow, user: user,
             swScroll: swScroll, swFx: swFx,
             btnStart: btnStart, btnPause: btnPause, btnImport: btnImport, btnStop: btnStop
         };
         document.body.appendChild(panel);
         render();
+        loadMe();
         syncFeedBottom();
         window.addEventListener("resize", syncFeedBottom);
         setInterval(paintTick, 700);
@@ -2642,6 +2807,7 @@
         reset: clearStore,
         scope: describeScope,
         markSaved: markSavedOnPage,
+        doneFx: playDoneFx,
         revealInfo: function () {
             return {
                 pending: revealQueue.length,

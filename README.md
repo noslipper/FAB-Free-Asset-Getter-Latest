@@ -13,7 +13,10 @@
 - 入库后卡片当场变成「已保存在我的库中」并扫一道光，面板上方同时弹出气泡提示
 - 一次存多少可调：滑杆 13 个档位（1 ~ 5000），也可直接手输，`↺` 回到默认 100
 - 两个开关：跟随卡片滚动、入库特效，默认开启
+- 面板状态里显示当前登录的账号，一眼就能确认这次入库用的是你的账号
 - 界面支持 14 种语言，自动跟随站点语言
+- 扫到末尾、队列清空后，全屏播放一段完成特效
+- 遇到合集（bundle）不再静默跳过：这类资产 FAB 只允许通过购物车领取，面板会如实说明
 - 两个快捷入口：**Megascan** 带 Quixel 图标，直达 Quixel Megascans 的免费资产（最新发布排序）；**免费资产** 直达全站免费资产（最新发布排序）
 
 ## 安装方法
@@ -47,6 +50,11 @@
 
 ## 版本历史
 
+- **v3.7.5** — 主要变化：
+  - **登录指示**：面板状态里显示当前登录的账号，未登录时直接标红提示，避免看着扫描有结果却一条都没进自己的库。
+  - **完成特效**：扫到末尾、队列清空后播放一段全屏完成提示，汇总本次入库数量；关掉「入库特效」开关即可静默完成。
+  - **合集如实报告**：合集类资产（bundle）无法通过领取接口入库，FAB 只提供购物车方式，脚本不再把它算作普通跳过，完成后单独说明这批合集的数量。
+  - **收尾更准**：扫描结束前把队列里剩下的资产领完再判定完成，不会再出现「已完成」却还有几条没领的情况。
 - **v3.7.4** — 主要变化：
   - **专业许可优先**：免费资产同时提供个人许可和专业许可时，领的是专业许可，不再落到个人许可上；只有个人许可的资产照常领取，不额外多跑一趟请求。
   - **扫描与入库同一身份**：搜索、核对、领取全部用你当前登录的账号发起，扫出来的清单与页面上看到的清单一致——之前用匿名身份读目录，同样的筛选会多出不在这页上的资产。
@@ -79,7 +87,10 @@ A Tampermonkey script that collects all free assets from the FAB marketplace int
 - Each saved asset turns its card into the site's own "saved in my library" state with a light sweep, and pops a bubble above the panel
 - Batch size is adjustable: a slider with 13 steps (1 – 5000) plus a free-form number box; `↺` restores the default 100
 - Two switches: follow the cards, and import effects — both on by default
+- The status row shows the account you are signed in with, so you can confirm at a glance whose library the run is filling
 - The interface speaks 14 languages and follows the site's own language setting
+- A full-screen finish effect plays once the last page is scanned and the queue is empty
+- Bundles are no longer skipped silently: FAB only allows them through the cart, and the panel says so
 - Two shortcuts: **Megascan**, with the Quixel mark, opens the Quixel Megascans free listings sorted by newest; **Free assets** opens the whole free catalogue in the same order
 
 ## Installation
@@ -113,6 +124,11 @@ A Tampermonkey script that collects all free assets from the FAB marketplace int
 
 ## Version History
 
+- **v3.7.5** — what changed:
+  - **Signed-in indicator**: the status row shows the account the run is using and flags a signed-out session, so a scan that saves nothing to your library is visible immediately.
+  - **Finish effect**: a full-screen completion animation plays once the last page is scanned and the queue is drained, summarising how many assets were saved; turn the effects switch off for a quiet finish.
+  - **Bundles reported honestly**: bundle listings cannot be claimed through the library endpoint, FAB only offers the cart for them, so they are no longer counted as ordinary skips and their number is reported at the end.
+  - **Cleaner finish**: the remaining queue is drained before a run is declared complete, so a finished run no longer leaves a few assets unsaved.
 - **v3.7.4** — what changed:
   - **Professional licence first**: when a free asset offers both a personal and a professional licence, the professional one is claimed instead of the personal one; assets with only a personal licence are claimed as before, with no extra request.
   - **One identity for scan and save**: search, ownership check and claim all run under the account you are signed in with, so the list scanned matches the list on the page — reading the catalogue anonymously used to bring back assets this page never showed under the same filters.
