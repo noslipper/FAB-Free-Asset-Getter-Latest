@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        FAB Free Asset Getter
 // @namespace   https://greasyfork.org/en/users/313682-没拖鞋
-// @version     3.7.5
+// @version     3.7.6
 // @description Bulk-import free FAB assets (whole free catalogue or one seller) into your library through the FAB API: streaming scan-and-import in adjustable batches, optional ownership check, resumable cursor. Fork of the original by subtixx.
 // @author      noslipper
 // @homepageURL https://greasyfork.org/zh-CN/scripts/534044-fab-free-asset-getter
@@ -97,7 +97,11 @@
      * Unknown values fall back to English rather than to a guess.
      * ------------------------------------------------------------------ */
     const I18N = {
-        "en": {            loginOn: "Signed in as {0}", loginOff: "Not signed in",
+        "en": {
+            cartMiss: "Cart is empty but nothing new reached your library",
+            cartBtn: "Checkout ({0})",
+            cartAsk: "Added {0} free items to the cart — finish the checkout to collect them", cartWait: "Waiting for checkout · cart {0}", cartDone: "Checkout done · {0} added",
+            loginOn: "Signed in as {0}", loginOff: "Not signed in",
             bundleNote: "{0} bundles need the cart (FAB rule)", doneAll: "All done · {0} added",
 
             navFree: "Free assets", navFreeTip: "Free assets of the Unreal Engine channel",
@@ -163,7 +167,11 @@
             toastCsrf: "Missing CSRF token, reload the page and confirm you are signed in",
             unnamed: "(untitled asset)"
         },
-        "zh-CN": {            loginOn: "已登录：{0}", loginOff: "未登录",
+        "zh-CN": {
+            cartMiss: "购物车已空，但库里没有新增资产",
+            cartBtn: "结账（{0}）",
+            cartAsk: "已把 {0} 个免费合集加入购物车，请在打开的结账页完成验证", cartWait: "等待结账 · 购物车 {0} 件", cartDone: "结账完成 · 入库 {0} 件",
+            loginOn: "已登录：{0}", loginOff: "未登录",
             bundleNote: "{0} 条合集需在页面加入购物车（FAB 限制）", doneAll: "全部完成 · 共入库 {0} 条",
 
             navFree: "免费资产", navFreeTip: "虚幻引擎频道 · 免费资产",
@@ -229,7 +237,11 @@
             toastCsrf: "缺少 CSRF 令牌，请刷新页面并确认已登录",
             unnamed: "(未命名资产)"
         },
-        "zh-TW": {            loginOn: "已登入：{0}", loginOff: "未登入",
+        "zh-TW": {
+            cartMiss: "購物車已空，但庫中沒有新增資產",
+            cartBtn: "結帳（{0}）",
+            cartAsk: "已把 {0} 個免費合集加入購物車，請在開啟的結帳頁完成驗證", cartWait: "等待結帳 · 購物車 {0} 件", cartDone: "結帳完成 · 入庫 {0} 件",
+            loginOn: "已登入：{0}", loginOff: "未登入",
             bundleNote: "{0} 個合集需在頁面加入購物車（FAB 限制）", doneAll: "全部完成 · 共入庫 {0} 項",
 
             navFree: "免費資產", navFreeTip: "虛幻引擎頻道 · 免費資產",
@@ -295,7 +307,11 @@
             toastCsrf: "缺少 CSRF 權杖，請重新整理頁面並確認已登入",
             unnamed: "(未命名資產)"
         },
-        "ja": {            loginOn: "{0} でログイン中", loginOff: "未ログイン",
+        "ja": {
+            cartMiss: "カートは空ですが、ライブラリに追加されたものはありません",
+            cartBtn: "決済（{0}）",
+            cartAsk: "無料の商品 {0} 件をカートに入れました。開いた決済ページで確認を完了してください", cartWait: "決済待ち · カート {0} 件", cartDone: "決済完了 · {0} 件追加",
+            loginOn: "{0} でログイン中", loginOff: "未ログイン",
             bundleNote: "{0} 件のバンドルはカートでの取得が必要（FAB の仕様）", doneAll: "すべて完了 · {0} 件追加",
 
             navFree: "無料アセット", navFreeTip: "Unreal Engine チャンネルの無料アセット",
@@ -361,7 +377,11 @@
             toastCsrf: "CSRF トークンがありません。再読み込みしてログインを確認してください",
             unnamed: "（名称未設定のアセット）"
         },
-        "ko": {            loginOn: "{0} 로 로그인됨", loginOff: "로그인되지 않음",
+        "ko": {
+            cartMiss: "장바구니는 비었지만 라이브러리에 추가된 항목이 없습니다",
+            cartBtn: "결제 ({0})",
+            cartAsk: "무료 항목 {0}개를 장바구니에 담았습니다. 열린 결제 페이지에서 인증을 완료하세요", cartWait: "결제 대기 · 장바구니 {0}개", cartDone: "결제 완료 · {0}개 추가",
+            loginOn: "{0} 로 로그인됨", loginOff: "로그인되지 않음",
             bundleNote: "{0}개 번들은 장바구니가 필요합니다(FAB 규칙)", doneAll: "모두 완료 · {0}개 추가",
 
             navFree: "무료 에셋", navFreeTip: "언리얼 엔진 채널의 무료 에셋",
@@ -427,7 +447,11 @@
             toastCsrf: "CSRF 토큰이 없습니다. 새로고침 후 로그인을 확인하세요",
             unnamed: "(이름 없는 자산)"
         },
-        "de": {            loginOn: "Angemeldet als {0}", loginOff: "Nicht angemeldet",
+        "de": {
+            cartMiss: "Warenkorb leer, aber nichts Neues in der Bibliothek",
+            cartBtn: "Bezahlen ({0})",
+            cartAsk: "{0} kostenlose Artikel in den Warenkorb gelegt — schließe die Bestellung auf der geöffneten Seite ab", cartWait: "Warte auf die Bestellung · Warenkorb {0}", cartDone: "Bestellung abgeschlossen · {0} hinzugefügt",
+            loginOn: "Angemeldet als {0}", loginOff: "Nicht angemeldet",
             bundleNote: "{0} Bundles erfordern den Warenkorb (FAB-Regel)", doneAll: "Alles erledigt · {0} hinzugefügt",
 
             navFree: "Gratis-Assets", navFreeTip: "Kostenlose Assets im Unreal-Engine-Kanal",
@@ -493,7 +517,11 @@
             toastCsrf: "CSRF-Token fehlt, Seite neu laden und Anmeldung prüfen",
             unnamed: "(unbenanntes Asset)"
         },
-        "fr": {            loginOn: "Connecté en tant que {0}", loginOff: "Non connecté",
+        "fr": {
+            cartMiss: "Panier vide, mais rien de nouveau dans la bibliothèque",
+            cartBtn: "Commander ({0})",
+            cartAsk: "{0} articles gratuits ajoutés au panier — termine la commande sur la page ouverte", cartWait: "En attente de la commande · panier {0}", cartDone: "Commande terminée · {0} ajoutés",
+            loginOn: "Connecté en tant que {0}", loginOff: "Non connecté",
             bundleNote: "{0} bundles passent par le panier (règle FAB)", doneAll: "Terminé · {0} ajoutés",
 
             navFree: "Gratuit", navFreeTip: "Ressources gratuites du canal Unreal Engine",
@@ -559,7 +587,11 @@
             toastCsrf: "Jeton CSRF manquant, rechargez la page et vérifiez la connexion",
             unnamed: "(asset sans nom)"
         },
-        "es-ES": {            loginOn: "Sesión de {0}", loginOff: "Sin sesión",
+        "es-ES": {
+            cartMiss: "Carrito vacío, pero nada nuevo en la biblioteca",
+            cartBtn: "Pagar ({0})",
+            cartAsk: "{0} artículos gratuitos añadidos al carrito: completa la compra en la página abierta", cartWait: "Esperando la compra · carrito {0}", cartDone: "Compra completada · {0} añadidos",
+            loginOn: "Sesión de {0}", loginOff: "Sin sesión",
             bundleNote: "{0} paquetes requieren el carrito (regla de FAB)", doneAll: "Todo listo · {0} añadidos",
 
             navFree: "Gratis", navFreeTip: "Recursos gratis del canal Unreal Engine",
@@ -625,7 +657,11 @@
             toastCsrf: "Falta el token CSRF, recarga la página y comprueba la sesión",
             unnamed: "(asset sin nombre)"
         },
-        "es-LA": {            loginOn: "Sesión de {0}", loginOff: "Sin sesión",
+        "es-LA": {
+            cartMiss: "Carrito vacío, pero nada nuevo en la biblioteca",
+            cartBtn: "Pagar ({0})",
+            cartAsk: "{0} artículos gratuitos añadidos al carrito: completa la compra en la página abierta", cartWait: "Esperando la compra · carrito {0}", cartDone: "Compra completada · {0} añadidos",
+            loginOn: "Sesión de {0}", loginOff: "Sin sesión",
             bundleNote: "{0} paquetes requieren el carrito (regla de FAB)", doneAll: "Todo listo · {0} añadidos",
 
             navFree: "Gratis", navFreeTip: "Recursos gratis del canal Unreal Engine",
@@ -691,7 +727,11 @@
             toastCsrf: "Falta el token CSRF, recarga la página y verifica la sesión",
             unnamed: "(asset sin nombre)"
         },
-        "it": {            loginOn: "Connesso come {0}", loginOff: "Non connesso",
+        "it": {
+            cartMiss: "Carrello vuoto, ma nulla di nuovo nella libreria",
+            cartBtn: "Paga ({0})",
+            cartAsk: "{0} articoli gratuiti aggiunti al carrello: completa l'ordine nella pagina aperta", cartWait: "In attesa dell'ordine · carrello {0}", cartDone: "Ordine completato · {0} aggiunti",
+            loginOn: "Connesso come {0}", loginOff: "Non connesso",
             bundleNote: "{0} bundle richiedono il carrello (regola FAB)", doneAll: "Tutto fatto · {0} aggiunti",
 
             navFree: "Gratis", navFreeTip: "Asset gratuiti del canale Unreal Engine",
@@ -757,7 +797,11 @@
             toastCsrf: "Token CSRF mancante, ricarica la pagina e verifica l'accesso",
             unnamed: "(asset senza nome)"
         },
-        "pl": {            loginOn: "Zalogowany jako {0}", loginOff: "Nie zalogowano",
+        "pl": {
+            cartMiss: "Koszyk pusty, ale w bibliotece nic nie przybyło",
+            cartBtn: "Zapłać ({0})",
+            cartAsk: "Dodano {0} darmowych pozycji do koszyka — dokończ zamówienie na otwartej stronie", cartWait: "Oczekiwanie na zamówienie · koszyk {0}", cartDone: "Zamówienie złożone · dodano {0}",
+            loginOn: "Zalogowany jako {0}", loginOff: "Nie zalogowano",
             bundleNote: "{0} paczek wymaga koszyka (zasada FAB)", doneAll: "Wszystko gotowe · dodano {0}",
 
             navFree: "Darmowe", navFreeTip: "Darmowe zasoby kanału Unreal Engine",
@@ -823,7 +867,11 @@
             toastCsrf: "Brak tokenu CSRF, odśwież stronę i sprawdź logowanie",
             unnamed: "(zasób bez nazwy)"
         },
-        "pt-BR": {            loginOn: "Conectado como {0}", loginOff: "Não conectado",
+        "pt-BR": {
+            cartMiss: "Carrinho vazio, mas nada novo na biblioteca",
+            cartBtn: "Finalizar ({0})",
+            cartAsk: "{0} itens gratuitos adicionados ao carrinho — conclua o pedido na página aberta", cartWait: "Aguardando o pedido · carrinho {0}", cartDone: "Pedido concluído · {0} adicionados",
+            loginOn: "Conectado como {0}", loginOff: "Não conectado",
             bundleNote: "{0} pacotes exigem o carrinho (regra do FAB)", doneAll: "Tudo pronto · {0} adicionados",
 
             navFree: "Grátis", navFreeTip: "Assets gratuitos do canal Unreal Engine",
@@ -889,7 +937,11 @@
             toastCsrf: "Token CSRF ausente, recarregue a página e confirme o login",
             unnamed: "(asset sem nome)"
         },
-        "ru": {            loginOn: "Вы вошли как {0}", loginOff: "Вход не выполнен",
+        "ru": {
+            cartMiss: "Корзина пуста, но в библиотеке ничего не появилось",
+            cartBtn: "Оплатить ({0})",
+            cartAsk: "В корзину добавлено бесплатных товаров: {0} — завершите оформление на открытой странице", cartWait: "Ожидание оформления · корзина {0}", cartDone: "Оформление завершено · добавлено {0}",
+            loginOn: "Вы вошли как {0}", loginOff: "Вход не выполнен",
             bundleNote: "{0} наборов требуют корзину (правило FAB)", doneAll: "Готово · добавлено {0}",
 
             navFree: "Бесплатно", navFreeTip: "Бесплатные ассеты канала Unreal Engine",
@@ -955,7 +1007,11 @@
             toastCsrf: "Нет токена CSRF, перезагрузите страницу и проверьте вход",
             unnamed: "(ассет без имени)"
         },
-        "tr": {            loginOn: "{0} olarak giriş yapıldı", loginOff: "Giriş yapılmadı",
+        "tr": {
+            cartMiss: "Sepet boş ama kütüphaneye yeni bir şey eklenmedi",
+            cartBtn: "Öde ({0})",
+            cartAsk: "{0} ücretsiz öğe sepete eklendi — açılan sayfada siparişi tamamla", cartWait: "Sipariş bekleniyor · sepet {0}", cartDone: "Sipariş tamamlandı · {0} eklendi",
+            loginOn: "{0} olarak giriş yapıldı", loginOff: "Giriş yapılmadı",
             bundleNote: "{0} paket sepet gerektirir (FAB kuralı)", doneAll: "Tamamlandı · {0} eklendi",
 
             navFree: "Ücretsiz", navFreeTip: "Unreal Engine kanalındaki ücretsiz varlıklar",
@@ -1022,6 +1078,10 @@
             unnamed: "(adsız varlık)"
         },
         "ar": {
+            cartMiss: "السلة فارغة لكن لم يصل شيء جديد إلى مكتبتك",
+            cartBtn: "إتمام الشراء ({0})",
+            cartAsk: "تمت إضافة {0} من العناصر المجانية إلى السلة — أكمل الطلب في الصفحة المفتوحة", cartWait: "بانتظار إتمام الطلب · السلة {0}", cartDone: "تم إتمام الطلب · أضيف {0}",
+
             loginOn: "تم تسجيل الدخول باسم {0}", loginOff: "لم تسجل الدخول",
             bundleNote: "{0} حزم تتطلب السلة (قاعدة Fab)", doneAll: "اكتمل كل شيء · أضيف {0}",
 
@@ -1166,10 +1226,12 @@
         },
         userName: "",                  // signed-in account shown in the status row
         userChecked: false,
+        carted: [],                    // parked in the cart, waiting for one checkout
+        cartTimer: null,
     };
 
     // Persisted between reloads: cursor + what we already handled.
-    let store = { key: "", cursor: null, pages: 0, done: {}, failed: {}, added: 0 };
+    let store = { key: "", cursor: null, pages: 0, done: {}, failed: {}, carted: {}, added: 0 };
 
     /* ---------------------------------------------------------------- *
      * utils
@@ -1300,6 +1362,7 @@
                     store = parsed;
                     if (!store.done) store.done = {};
                     if (!store.failed) store.failed = {};
+                    if (!store.carted) store.carted = {};
                     runtime.cursor = store.cursor || null;
                     runtime.pages = store.pages || 0;
                     log(t("logRestored", runtime.pages, Object.keys(store.done).length));
@@ -1322,9 +1385,25 @@
         }
     }
 
+    // The cart is account-wide, not page-wide: what is parked in it has to be
+    // visible from any page, so this list lives under one global key.
+    const CART_KEY = "fab_bfg_cart_pending";
+
+    function loadCartPending() {
+        try {
+            const raw = localStorage.getItem(CART_KEY);
+            const v = raw ? JSON.parse(raw) : [];
+            return Array.isArray(v) ? v : [];
+        } catch (e) { return []; }
+    }
+
+    function saveCartPending() {
+        try { localStorage.setItem(CART_KEY, JSON.stringify(runtime.carted || [])); } catch (e) { /* ignore */ }
+    }
+
     function clearStore() {
         try { localStorage.removeItem(STORE_PREFIX + store.key); } catch (e) { /* ignore */ }
-        store = { key: scopeKey(), cursor: null, pages: 0, done: {}, failed: {}, added: 0 };
+        store = { key: scopeKey(), cursor: null, pages: 0, done: {}, failed: {}, carted: {}, added: 0 };
         runtime.cursor = null;
         runtime.pages = 0;
         runtime.queue = [];
@@ -1429,6 +1508,153 @@
         return best ? normalizeFreeOfferId(best) : null;
     }
 
+    // Bundles (and a few other free listings) refuse add-to-library outright:
+    // FAB answers 400 {"detail":["Listing is a bundle."]} and only sells them
+    // through the cart. So the script puts them in the cart instead, and one
+    // checkout at the end collects the whole batch.
+    //
+    // The checkout page itself sits behind Epic's hCaptcha/talon check — that
+    // step stays with the person, by design. Everything up to it is automated,
+    // and the finish effect waits for the order instead of firing early.
+    async function resolveCartLicense(item) {
+        // A bundle answers on /i/bundles/<uid>, a normal listing on
+        // /i/listings/<uid>; try the bundle route first and fall back, so the
+        // caller never has to know which one it is holding.
+        let data = null;
+        const routes = ["/i/bundles/" + item.uid, "/i/listings/" + item.uid];
+        for (let i = 0; i < routes.length; i++) {
+            const r = await requestJson(routes[i], 1);
+            if (r.auth) throw { fatal: "auth" };
+            if (r.ok && r.data) { data = r.data; break; }
+        }
+        if (!data) return null;
+        const list = data.licenses || [];
+        let pick = null;
+        for (let i = 0; i < list.length; i++) {
+            const lic = list[i] || {};
+            const slug = (lic.slug || "").toLowerCase();
+            if (slug === "professional" && CONFIG.preferProfessional) { pick = lic; break; }
+            if (slug === "personal") { if (!pick) pick = lic; }
+        }
+        if (!pick) {
+            for (let i = 0; i < list.length; i++) {
+                if (list[i] && list[i].listingLicenseId) { pick = list[i]; break; }
+            }
+        }
+        return pick && pick.listingLicenseId ? pick.listingLicenseId : null;
+    }
+
+    async function postCartItem(listingLicenseId) {
+        for (let attempt = 0; attempt <= CONFIG.retries; attempt++) {
+            if (runtime.aborted) return { ok: false, aborted: true };
+            try {
+                const r = await fetch("/i/cart/items", {
+                    method: "POST",
+                    headers: apiHeaders({ "Accept": "application/json", "Content-Type": "application/json" }),
+                    body: JSON.stringify({ listingLicense: listingLicenseId }),
+                    credentials: "same-origin"
+                });
+                if (r.status === 200 || r.status === 201) { noteSuccess(); return { ok: true }; }
+                if (r.status === 401) return { ok: false, status: 401, auth: true };
+                const txt = await r.text().catch(function () { return ""; });
+                if (/already|exists|已在|重复/i.test(txt)) return { ok: true, already: true };
+                if (r.status === 429 || r.status >= 500) {
+                    noteThrottled(r.status);
+                    await sleep(1000 + attempt * 1500);
+                    continue;
+                }
+                return { ok: false, status: r.status, body: txt };
+            } catch (e) {
+                await sleep(700 * (attempt + 1));
+            }
+        }
+        return { ok: false, status: -1 };
+    }
+
+    // Park one listing in the cart; returns true when it landed there.
+    async function addToCart(item) {
+        try {
+            if (!item.isBundle) item.isBundle = false;
+            const licId = await resolveCartLicense({
+                uid: item.uid,
+                type: item.listingType || (item.isBundle ? "bundle" : "")
+            });
+            if (!licId) return false;
+            const r = await postCartItem(licId);
+            if (r.auth) throw { fatal: "auth" };
+            return !!r.ok;
+        } catch (e) {
+            if (e && e.fatal) throw e;
+            return false;
+        }
+    }
+
+    // After the run: open the cart, keep the panel honest about what it is
+    // waiting for, and watch the cart until the order goes through.
+    async function checkoutCarted() {
+        const n = runtime.carted.length;
+        if (!n) return;
+        // One last look at the cart: a request that reported success can still
+        // have been dropped, and a half-filled cart would be a silent loss.
+        const cartNow = await requestJson("/i/cart", 1);
+        if (cartNow.ok && cartNow.data) {
+            const present = (cartNow.data.items || []).map(function (i) { return i.listingUid; });
+            const missing = runtime.carted.filter(function (u) { return present.indexOf(u) < 0; });
+            for (let i = 0; i < missing.length; i++) {
+                const ok = await addToCart({ uid: missing[i] });
+                if (!ok && runtime.carted.indexOf(missing[i]) >= 0) runtime.carted.splice(runtime.carted.indexOf(missing[i]), 1);
+            }
+            saveCartPending();
+        }
+        setStatus(t("cartAsk", n));
+        toast(t("cartAsk", n), "info", 8000);
+        log(t("cartAsk", n));
+        // No window.open here: a blocked popup would navigate this tab and kill
+        // the poller. The person opens the cart with the panel button instead,
+        // so this page stays alive to catch the order.
+
+        if (runtime.cartTimer) clearInterval(runtime.cartTimer);
+        const deadline = Date.now() + 15 * 60 * 1000;
+        runtime.cartTimer = setInterval(async function () {
+            if (Date.now() > deadline) { clearInterval(runtime.cartTimer); runtime.cartTimer = null; return; }
+            const r = await requestJson("/i/cart", 0);
+            if (!r.ok || !r.data) return;
+            const items = r.data.items || [];
+            setStatus(t("cartWait", items.length));
+            if (items.length) return;
+            // Empty cart: the order went through. Confirm each uid really is
+            // acquired before claiming this as a success.
+            clearInterval(runtime.cartTimer);
+            runtime.cartTimer = null;
+            const uids = runtime.carted.slice(0);
+            const q = uids.map(function (u) { return "listing_ids=" + encodeURIComponent(u); }).join("&");
+            const st = await requestJson("/i/users/me/listings-states?" + q, 1);
+            let got = 0;
+            if (st.ok && Array.isArray(st.data)) {
+                for (let i = 0; i < st.data.length; i++) if (st.data[i] && st.data[i].acquired) got++;
+            }
+            if (!got) {
+                // The cart is empty but nothing is actually owned: do not
+                // celebrate a purchase that did not happen.
+                runtime.carted.length = 0;
+                saveCartPending();
+                setStatus(t("cartMiss"));
+                toast(t("cartMiss"), "warning", 6000);
+                render();
+                return;
+            }
+            runtime.stats.added += got;
+            for (let i = 0; i < uids.length; i++) { store.done[uids[i]] = 1; markSavedOnPage(uids[i]); }
+            runtime.carted.length = 0;
+            saveCartPending();
+            setStatus(t("cartDone", got));
+            toast(t("cartDone", got), "success", 6000);
+            saveStore();
+            render();
+            playDoneFx(runtime.stats.added);
+        }, 4000);
+    }
+
     async function postAddToLibrary(uid, offerId) {
         for (let attempt = 0; attempt <= CONFIG.retries; attempt++) {
             if (runtime.aborted) return { ok: false, aborted: true };
@@ -1522,7 +1748,10 @@
                 // offer id, though). Knowing a professional tier exists is enough
                 // to decide that this item needs the detail lookup, so single-tier
                 // assets keep the one-request fast path.
-                hasPro: hasProfessionalTier(it.licenses)
+                hasPro: hasProfessionalTier(it.licenses),
+                // A bundle is sold through the cart only; the type is carried
+                // here so the import step knows which detail route to read.
+                listingType: it.listingType || ""
             });
         }
 
@@ -1772,13 +2001,22 @@
             runtime.successStreak = (runtime.successStreak || 0) + 1;
             runtime.failStreak = 0;
         } else {
-            // Bundles cannot be claimed through add-to-library: FAB answers
-            // 400 {"detail":["Listing is a bundle."]} and offers only the cart
-            // for them. Count them apart from real skips so the panel can say
-            // why those cards never landed in the library.
-            if (/bundle/i.test(added.body || "")) {
-                store.done[item.uid] = 1;
-                runtime.stats.bundles = (runtime.stats.bundles || 0) + 1;
+            // Bundles (and any other free type the claim endpoint refuses) go
+            // into the cart instead of being written off as a skip: one
+            // checkout at the end collects them all.
+            let carted = false;
+            const isRefusal = added.status === 400 || added.status === 403;
+            if (isRefusal && !added.auth) {
+                carted = await addToCart(item);
+            }
+            if (carted) {
+                runtime.stats.carted = (runtime.stats.carted || 0) + 1;
+                runtime.carted.push(item.uid);
+                if (!store.carted) store.carted = {};
+                store.carted[item.uid] = 1;
+                saveCartPending();
+                assetBubble(item.title, runtime.stats.carted);   // the bubble marks it as queued
+                render();
             } else {
                 runtime.stats.failed++;
                 runtime.failStreak = (runtime.failStreak || 0) + 1;
@@ -1794,7 +2032,8 @@
         // Queue items were already ownership-checked while scanning, so there is
         // no second pass here — that extra round trip per batch is what made
         // importing feel sluggish.
-        let batch = items.filter(function (i) { return !store.done[i.uid]; });
+        // Items already parked in the cart must not be added twice.
+        let batch = items.filter(function (i) { return !store.done[i.uid] && !(store.carted && store.carted[i.uid]); });
 
         const total = batch.length;
         let next = 0;
@@ -1928,8 +2167,12 @@
         runtime.stats.pending = 0;
         runtime.stats.startedAt = Date.now();
         runtime.stats.finishedAt = 0;
+        runtime.stats.carted = 0;
         runtime.phase = "scan";
         runtime.queue = [];
+        const pending = loadCartPending();
+        runtime.carted = pending.slice(0);
+        Object.keys(store.carted || {}).forEach(function (u) { if (runtime.carted.indexOf(u) < 0) runtime.carted.push(u); });
         setStatus(t("statusScanning"));
         render();
 
@@ -1946,8 +2189,13 @@
             } else if (runtime.endReached) {
                 setStatus(t("statusEnd", runtime.stats.added, runtime.stats.failed));
                 toast(t("toastEnd", runtime.stats.added, runtime.stats.failed), "success", 6000);
-                if (runtime.stats.bundles) log(t("bundleNote", runtime.stats.bundles));
-                playDoneFx(runtime.stats.added);
+                if (runtime.stats.carted) {
+                    // Bundles are in the cart: the finish effect waits for the
+                    // order, so it does not celebrate a cart that is not paid.
+                    await checkoutCarted();
+                } else {
+                    playDoneFx(runtime.stats.added);
+                }
             } else {
                 setStatus(t("statusBatchEnd", runtime.stats.added));
                 toast(t("toastBatch", runtime.stats.added), "info", 4000);
@@ -2518,6 +2766,11 @@
         el.btnImport.style.display = canImport ? "inline-block" : "none";
         el.btnImport.textContent = t("importBtn", runtime.queue.length);
         if (el.scope) el.scope.textContent = t("scopePrefix", describeScope());
+        if (el.btnCart) {
+            const n = (runtime.carted || []).length;
+            el.btnCart.style.display = (n && !runtime.running) ? "block" : "none";
+            el.btnCart.textContent = t("cartBtn", n);
+        }
         function paintSwitch(sw, on, label) {
             if (!sw) return;
             sw.track.style.background = on ? "#45C761" : "#3a3f48";
@@ -2546,7 +2799,7 @@
         const head = document.createElement("div");
         Object.assign(head.style, { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" });
         const title = document.createElement("strong");
-        title.textContent = t("name") + " v3.7.5";
+        title.textContent = t("name") + " v3.7.6";
         title.style.fontSize = "13px";
         const headRight = document.createElement("span");
         headRight.style.cssText = "display:inline-flex;align-items:center;gap:6px;min-width:0";
@@ -2640,6 +2893,16 @@
         const counters = document.createElement("div");
         counters.style.cssText = "margin-bottom:2px";
         panel.appendChild(counters);
+
+        // Cart checkout: shown once bundles have been parked in the cart, so the
+        // order can still be placed when the browser blocks the popup.
+        const btnCart = document.createElement("button");
+        btnCart.style.cssText = "display:none;width:100%;margin:4px 0 6px;padding:5px 8px;border-radius:6px;" +
+            "border:1px solid #45C761;background:rgba(69,199,97,.14);color:#8ff0a6;cursor:pointer;font-size:12px";
+        btnCart.onclick = function () {
+            window.open(BASE_HOST + "/cart", "_blank");
+        };
+        panel.appendChild(btnCart);
 
         const meta = document.createElement("div");
         meta.style.cssText = "font-size:11px;opacity:.7;margin-bottom:2px";
@@ -2780,11 +3043,12 @@
         el = {
             panel: panel, phase: phase, status: status, bar: bar, barLabel: barLabel,
             counters: counters, meta: meta, owner: owner, log: logLine,
-            scope: scopeText, scroll: toggleRow, user: user,
+            scope: scopeText, scroll: toggleRow, user: user, btnCart: btnCart,
             swScroll: swScroll, swFx: swFx,
             btnStart: btnStart, btnPause: btnPause, btnImport: btnImport, btnStop: btnStop
         };
         document.body.appendChild(panel);
+        runtime.carted = loadCartPending();
         render();
         loadMe();
         syncFeedBottom();

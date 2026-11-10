@@ -16,7 +16,7 @@
 - 面板状态里显示当前登录的账号，一眼就能确认这次入库用的是你的账号
 - 界面支持 14 种语言，自动跟随站点语言
 - 扫到末尾、队列清空后，全屏播放一段完成特效
-- 遇到合集（bundle）不再静默跳过：这类资产 FAB 只允许通过购物车领取，面板会如实说明
+- 合集等无法直接入库的免费资产改为自动加入购物车，扫完后一次性结账；结账完成才播放完成特效
 - 两个快捷入口：**Megascan** 带 Quixel 图标，直达 Quixel Megascans 的免费资产（最新发布排序）；**免费资产** 直达全站免费资产（最新发布排序）
 
 ## 安装方法
@@ -50,6 +50,10 @@
 
 ## 版本历史
 
+- **v3.7.6** — 主要变化：
+  - **合集走购物车**：合集（bundle）和同样无法通过领取接口入库的免费资产，脚本自动取用对应许可并加入购物车，扫完后在面板上给出「结账（n）」入口，一次性结账即可把它们收进库。
+  - **结账后收尾**：结账页的人机验证需要本人完成，脚本会一直盯着购物车，等订单落地后核对库里是否真的到手，再计入新增并播放完成特效；购物车空了但库里没东西时不会报成功。
+  - **加购补漏**：加购结束后回头核对购物车，漏掉的条目再补一次，避免出现「显示 12 条、车里只有 10 条」。
 - **v3.7.5** — 主要变化：
   - **登录指示**：面板状态里显示当前登录的账号，未登录时直接标红提示，避免看着扫描有结果却一条都没进自己的库。
   - **完成特效**：扫到末尾、队列清空后播放一段全屏完成提示，汇总本次入库数量；关掉「入库特效」开关即可静默完成。
@@ -90,7 +94,7 @@ A Tampermonkey script that collects all free assets from the FAB marketplace int
 - The status row shows the account you are signed in with, so you can confirm at a glance whose library the run is filling
 - The interface speaks 14 languages and follows the site's own language setting
 - A full-screen finish effect plays once the last page is scanned and the queue is empty
-- Bundles are no longer skipped silently: FAB only allows them through the cart, and the panel says so
+- Bundles and other free types that the claim endpoint refuses are put in the cart automatically; one checkout at the end collects them, and the finish effect waits for that order
 - Two shortcuts: **Megascan**, with the Quixel mark, opens the Quixel Megascans free listings sorted by newest; **Free assets** opens the whole free catalogue in the same order
 
 ## Installation
@@ -124,6 +128,10 @@ A Tampermonkey script that collects all free assets from the FAB marketplace int
 
 ## Version History
 
+- **v3.7.6** — what changed:
+  - **Bundles go through the cart**: bundles, and any other free type the claim endpoint refuses, are added to the cart with the right licence automatically; when the scan ends the panel offers a Checkout(n) entry that collects them in one order.
+  - **The finish waits for the order**: the human check on the checkout page stays with the person, so the script watches the cart, then verifies the library really has the assets before counting them and playing the finish effect; an emptied cart with nothing acquired is reported as a miss, not a success.
+  - **Second pass on the cart**: after adding, the cart is read back and anything missing is added again, so the count on screen matches what is really in the cart.
 - **v3.7.5** — what changed:
   - **Signed-in indicator**: the status row shows the account the run is using and flags a signed-out session, so a scan that saves nothing to your library is visible immediately.
   - **Finish effect**: a full-screen completion animation plays once the last page is scanned and the queue is drained, summarising how many assets were saved; turn the effects switch off for a quiet finish.
