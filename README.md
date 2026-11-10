@@ -7,7 +7,7 @@
 ## 功能
 
 - 任意 `fab.com` 页面右下角出现「FAB 批量入库」面板，点一下就开始扫描并领取
-- 扫描范围跟着页面走：全站免费、某个发行商、关键词、分类、频道页，页面上的筛选与排序都算数
+- 扫描范围跟着页面走：全站免费、某个发行商、关键词、左侧类别、频道页，页面上的筛选（含多选）与排序都算数
 - 边扫边存，速度约每秒 12 条；中途停下可以接着上次继续
 - 入库后卡片当场变成「已保存在我的库中」并扫一道光，面板上方同时弹出气泡提示
 - 一次存多少可调：滑杆 13 个档位（1 ~ 5000），也可直接手输，`↺` 回到默认 100
@@ -46,10 +46,10 @@
 
 ## 版本历史
 
-- **v3.7.2** — 主要变化：
+- **v3.7.3** — 主要变化：
   - **入库速度**：不再一条条点页面上的按钮，改成成批把资产存进库里，速度从每秒 1 条左右提到每秒 12 条左右；中途停下可以接着上一次继续，网站限速时会自动放慢等待。
   - **边扫边存**：读到一批就开始存，不用等全部扫完；一次存多少可以自己调；暂停后点「入库(n)」能把已经扫描的一次存完。
-  - **跟着页面走**：搜索词、发行商、分类、排序都沿用页面当前的条件，从频道页进来也一样；账号里已经设了「不显示库内资产」时，脚本不再重复核对。
+  - **跟着页面走**：搜索词、发行商、左侧类别、排序都沿用页面当前的条件；多选的筛选项（例如格式同时勾 FBX 和 OBJ、同时勾多个发行商）也按页面原样一起带上，不会被压成只剩最后一项；从频道页进来同样生效；账号里已经设了「不显示库内资产」时，脚本不再重复核对。
   - **看得见的进度**：每存好一条，面板上方弹一条气泡；对应卡片当场变成「已保存在我的库中」并扫一道光；这一屏看不到的卡片会排队，滚到哪儿就依次亮到哪儿。
   - **操作细节**：批量滑杆停在 1 / 10 / 20 / 50 / 100 … 5000 共 13 个整数档，`↺` 回到默认的 100；扫描时页面不会自己乱滚；界面语言跟着站点自动切换，覆盖 14 种语言。
   - **快捷入口**：新增带 Quixel 图标的 **Megascan** 与 **免费资产** 两个跳转按钮，分别打开 Quixel Megascans 的免费资产与全站免费资产，均按最新发布排序；按钮颜色与运行按钮区分，文字随界面语言变化。
@@ -70,7 +70,7 @@ A Tampermonkey script that collects all free assets from the FAB marketplace int
 ## Features
 
 - A "FAB Bulk Import" panel appears in the bottom-right corner of any `fab.com` page — press start and it scans and claims for you
-- The scan follows the page: whole free catalogue, one seller, a keyword, a category or a channel page — the filters and ordering you see are the ones used
+- The scan follows the page: whole free catalogue, one seller, a keyword, the left-hand category tree or a channel page — every filter you see, multi-select included, and the ordering are the ones used
 - Scans and saves at the same time, at roughly 12 assets per second; a stopped run continues where it left off
 - Each saved asset turns its card into the site's own "saved in my library" state with a light sweep, and pops a bubble above the panel
 - Batch size is adjustable: a slider with 13 steps (1 – 5000) plus a free-form number box; `↺` restores the default 100
@@ -109,10 +109,10 @@ A Tampermonkey script that collects all free assets from the FAB marketplace int
 
 ## Version History
 
-- **v3.7.2** — what changed:
+- **v3.7.3** — what changed:
   - **Import speed**: instead of clicking through the page one item at a time, assets are saved in batches, lifting the rate from about 1 per second to about 12 per second; a stopped run picks up where it left off, and the script slows down and waits by itself when the site starts throttling.
   - **Scan and save at once**: saving starts as soon as a batch is read, no need to finish scanning first; the batch size is yours to set; after a pause, Import(n) saves everything already scanned in one go.
-  - **Follows the page**: search term, seller, category and sorting all match what the page is showing, including when you come in from a channel page; if your account already hides library items, the duplicate check is skipped.
+  - **Follows the page**: search term, sellers, the left-hand category tree and sorting all match what the page is showing, including when you come in from a channel page; multi-select facets (two formats such as FBX and OBJ at once, several sellers) are carried through exactly as the page has them instead of collapsing to the last value; if your account already hides library items, the duplicate check is skipped.
   - **Visible progress**: a bubble pops up above the panel for each saved asset; the matching card switches to the saved state on the spot with a light sweep; cards outside the viewport queue up and light up one by one as you scroll to them.
   - **Small details**: the batch slider stops at 13 whole steps (1 / 10 / 20 / 50 / 100 … 5000) and `↺` puts it back to 100; scanning never scrolls the page by itself; the interface language follows the site and covers 14 languages.
   - **Shortcuts**: two new jump buttons, **Megascan** with the Quixel mark and **Free assets**, open the Quixel Megascans free listings and the whole free catalogue, both sorted by newest; their colours differ from the run buttons and the labels follow the interface language.

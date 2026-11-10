@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        FAB Free Asset Getter
 // @namespace   https://greasyfork.org/en/users/313682-没拖鞋
-// @version     3.7.2
+// @version     3.7.3
 // @description Bulk-import free FAB assets (whole free catalogue or one seller) into your library through the FAB API: streaming scan-and-import in adjustable batches, optional ownership check, resumable cursor. Fork of the original by subtixx.
 // @author      noslipper
 // @homepageURL https://greasyfork.org/zh-CN/scripts/534044-fab-free-asset-getter
@@ -1179,24 +1179,31 @@
     function baseParams() {
         const src = new URLSearchParams(location.search);
         const q = new URLSearchParams();
-        const drop = { cursor: 1, count: 1, offset: 1, aggregate_on: 1, sort_by: 1 };
+        const drop = { cursor: 1, count: 1, offset: 1, aggregate_on: 1 };
+        // append() and not set(): FAB keeps multi-select facets in the URL as
+        // repeated keys (asset_formats=fbx&asset_formats=obj, sellers=a&
+        // sellers=b, …). set() would keep only the last value, so the scan
+        // would quietly narrow to one facet and no longer match the page.
+        const seen = {};
         src.forEach(function (v, k) {
-            if (!drop[k]) q.set(k, v);
+            if (drop[k] || !v) return;
+            const sig = k + "=" + v;
+            if (seen[sig]) return;
+            seen[sig] = 1;
+            q.append(k, v);
         });
         // Path segments carry filters that never show up in location.search:
         // /search/channels/<slug> (and /search/categories/<...>) are the same
         // filters the API expects as query params. Without this a run started
         // on a channel page silently scans the whole free catalogue instead.
         const ch = location.pathname.match(/\/search\/channels\/([^\/]+)/);
-        if (ch) q.set("channels", decodeURIComponent(ch[1]));
+        if (ch) q.append("channels", decodeURIComponent(ch[1]));
         const cat = location.pathname.match(/\/search\/categories\/(.+)$/);
-        if (cat) q.set("categories", decodeURIComponent(cat[1].replace(/\/$/, "").replace(/\//g, "--")));
-        if (CONFIG.forceFree) q.set("is_free", "1");
+        if (cat) q.append("categories", decodeURIComponent(cat[1].replace(/\/$/, "").replace(/\//g, "--")));
+        if (CONFIG.forceFree && !q.has("is_free")) q.append("is_free", "1");
         // Ordering: always follow the page. An absent sort_by means the site's
         // own default (relevance), so we must not invent one — otherwise
         // following the page's order turns into a -createdAt sweep.
-        const pageSort = src.get("sort_by");
-        if (pageSort) q.set("sort_by", pageSort);
         q.set("count", String(CONFIG.pageSize));
         return q;
     }
@@ -1207,14 +1214,24 @@
         const parts = [];
         const keys = {
             q: t("scopeKeyword"), sellers: t("scopeSeller"), categories: t("scopeCategory"),
-            tags: t("scopeTag"), asset_formats: t("scopeFormat"), licenses: t("scopeLicense")
+            tags: t("scopeTag"), asset_formats: t("scopeFormat"), licenses: t("scopeLicense"),
+            channels: t("scopeChannel")
         };
+        // Group repeated keys so a multi-select facet reads "格式=fbx,obj" and
+        // not "格式=fbx · 格式=obj". Anything the site added that we have no
+        // label for is still shown raw, instead of being silently dropped.
+        const groups = {};
+        const order = [];
         q.forEach(function (v, k) {
             if (k === "count") return;
-            if (keys[k]) parts.push(keys[k] + "=" + v);
-            else if (k === "is_free") parts.push(t("scopeFreeOnly"));
-            else if (k === "sort_by") parts.push(t("scopeSort", v));
-            else if (k === "channels") parts.push(t("scopeChannel") + "=" + v);
+            if (!groups[k]) { groups[k] = []; order.push(k); }
+            groups[k].push(v);
+        });
+        order.forEach(function (k) {
+            const vals = groups[k];
+            if (k === "is_free") parts.push(t("scopeFreeOnly"));
+            else if (k === "sort_by") parts.push(t("scopeSort", vals.join(", ")));
+            else parts.push((keys[k] || k) + "=" + vals.join(","));
         });
         if (!parts.length) return t("scopeAll");
         return parts.join(" · ");
@@ -2320,7 +2337,7 @@
         const head = document.createElement("div");
         Object.assign(head.style, { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" });
         const title = document.createElement("strong");
-        title.textContent = t("name") + " v3.7.2";
+        title.textContent = t("name") + " v3.7.3";
         title.style.fontSize = "13px";
         const phase = document.createElement("span");
         phase.textContent = t("idle");
