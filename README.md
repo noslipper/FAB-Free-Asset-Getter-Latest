@@ -50,6 +50,9 @@
 
 ## 版本历史
 
+- **v3.7.9** — 主要变化：
+  - **结账页不显示面板**：购物车页和 Epic 付款页不再挂面板，也不在那两页扫描，付款界面保持原样。
+  - **扫描条件不撑爆面板**：条件摘要过长时截断显示，不会再出现整条付款链接铺满面板的情况。
 - **v3.7.8** — 主要变化：
   - **只加免费档**：同一资产的专业版可能单独收费（个人版免费、专业版标价 333 之类），加购改为只在免费档里挑，优先专业版、没有才用个人版，购物车里不会再出现待付款条目。
 - **v3.7.7** — 主要变化：
@@ -134,6 +137,9 @@ A Tampermonkey script that collects all free assets from the FAB marketplace int
 
 ## Version History
 
+- **v3.7.9** — what changed:
+  - **No panel on the checkout pages**: the cart page and the Epic payment page no longer host the panel and are not scanned, so the payment screen stays as the site renders it.
+  - **Scope summary no longer floods the panel**: a long filter summary is truncated instead of printing a whole payment URL across the panel.
 - **v3.7.8** — what changed:
   - **Free tiers only**: the professional tier of one listing can be sold separately while the personal tier is free, so carting now picks among free tiers only, preferring professional and falling back to personal. No payable line can enter the cart.
 - **v3.7.7** — what changed:

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        FAB Free Asset Getter
 // @namespace   https://greasyfork.org/en/users/313682-没拖鞋
-// @version     3.7.8
+// @version     3.7.9
 // @description Bulk-import free FAB assets (whole free catalogue or one seller) into your library through the FAB API: streaming scan-and-import in adjustable batches, optional ownership check, resumable cursor. Fork of the original by subtixx.
 // @author      noslipper
 // @homepageURL https://greasyfork.org/zh-CN/scripts/534044-fab-free-asset-getter
@@ -98,6 +98,7 @@
      * ------------------------------------------------------------------ */
     const I18N = {
         "en": {
+            logCheckoutNoScan: "Checkout page: nothing to scan here, start from a search page",
             cartMiss: "Cart is empty but nothing new reached your library",
             cartBtn: "Checkout ({0})",
             cartAsk: "Added {0} free items to the cart — finish the checkout to collect them", cartWait: "Waiting for checkout · cart {0}", cartDone: "Checkout done · {0} added",
@@ -168,6 +169,7 @@
             unnamed: "(untitled asset)"
         },
         "zh-CN": {
+            logCheckoutNoScan: "结账页不扫描，请回到搜索页开始",
             cartMiss: "购物车已空，但库里没有新增资产",
             cartBtn: "结账（{0}）",
             cartAsk: "已把 {0} 个免费合集加入购物车，请在打开的结账页完成验证", cartWait: "等待结账 · 购物车 {0} 件", cartDone: "结账完成 · 入库 {0} 件",
@@ -238,6 +240,7 @@
             unnamed: "(未命名资产)"
         },
         "zh-TW": {
+            logCheckoutNoScan: "結帳頁不掃描，請回到搜尋頁開始",
             cartMiss: "購物車已空，但庫中沒有新增資產",
             cartBtn: "結帳（{0}）",
             cartAsk: "已把 {0} 個免費合集加入購物車，請在開啟的結帳頁完成驗證", cartWait: "等待結帳 · 購物車 {0} 件", cartDone: "結帳完成 · 入庫 {0} 件",
@@ -308,6 +311,7 @@
             unnamed: "(未命名資產)"
         },
         "ja": {
+            logCheckoutNoScan: "決済ページではスキャンしません。検索ページから開始してください",
             cartMiss: "カートは空ですが、ライブラリに追加されたものはありません",
             cartBtn: "決済（{0}）",
             cartAsk: "無料の商品 {0} 件をカートに入れました。開いた決済ページで確認を完了してください", cartWait: "決済待ち · カート {0} 件", cartDone: "決済完了 · {0} 件追加",
@@ -378,6 +382,7 @@
             unnamed: "（名称未設定のアセット）"
         },
         "ko": {
+            logCheckoutNoScan: "결제 페이지에서는 스캔하지 않습니다. 검색 페이지에서 시작하세요",
             cartMiss: "장바구니는 비었지만 라이브러리에 추가된 항목이 없습니다",
             cartBtn: "결제 ({0})",
             cartAsk: "무료 항목 {0}개를 장바구니에 담았습니다. 열린 결제 페이지에서 인증을 완료하세요", cartWait: "결제 대기 · 장바구니 {0}개", cartDone: "결제 완료 · {0}개 추가",
@@ -448,6 +453,7 @@
             unnamed: "(이름 없는 자산)"
         },
         "de": {
+            logCheckoutNoScan: "Bezahlseite wird nicht gescannt, bitte auf einer Suchseite starten",
             cartMiss: "Warenkorb leer, aber nichts Neues in der Bibliothek",
             cartBtn: "Bezahlen ({0})",
             cartAsk: "{0} kostenlose Artikel in den Warenkorb gelegt — schließe die Bestellung auf der geöffneten Seite ab", cartWait: "Warte auf die Bestellung · Warenkorb {0}", cartDone: "Bestellung abgeschlossen · {0} hinzugefügt",
@@ -518,6 +524,7 @@
             unnamed: "(unbenanntes Asset)"
         },
         "fr": {
+            logCheckoutNoScan: "La page de paiement n'est pas analysée, lancez depuis une page de recherche",
             cartMiss: "Panier vide, mais rien de nouveau dans la bibliothèque",
             cartBtn: "Commander ({0})",
             cartAsk: "{0} articles gratuits ajoutés au panier — termine la commande sur la page ouverte", cartWait: "En attente de la commande · panier {0}", cartDone: "Commande terminée · {0} ajoutés",
@@ -588,6 +595,7 @@
             unnamed: "(asset sans nom)"
         },
         "es-ES": {
+            logCheckoutNoScan: "La página de pago no se escanea, inicia desde una página de búsqueda",
             cartMiss: "Carrito vacío, pero nada nuevo en la biblioteca",
             cartBtn: "Pagar ({0})",
             cartAsk: "{0} artículos gratuitos añadidos al carrito: completa la compra en la página abierta", cartWait: "Esperando la compra · carrito {0}", cartDone: "Compra completada · {0} añadidos",
@@ -658,6 +666,7 @@
             unnamed: "(asset sin nombre)"
         },
         "es-LA": {
+            logCheckoutNoScan: "La página de pago no se escanea, inicia desde una página de búsqueda",
             cartMiss: "Carrito vacío, pero nada nuevo en la biblioteca",
             cartBtn: "Pagar ({0})",
             cartAsk: "{0} artículos gratuitos añadidos al carrito: completa la compra en la página abierta", cartWait: "Esperando la compra · carrito {0}", cartDone: "Compra completada · {0} añadidos",
@@ -728,6 +737,7 @@
             unnamed: "(asset sin nombre)"
         },
         "it": {
+            logCheckoutNoScan: "La pagina di pagamento non viene analizzata, avvia da una pagina di ricerca",
             cartMiss: "Carrello vuoto, ma nulla di nuovo nella libreria",
             cartBtn: "Paga ({0})",
             cartAsk: "{0} articoli gratuiti aggiunti al carrello: completa l'ordine nella pagina aperta", cartWait: "In attesa dell'ordine · carrello {0}", cartDone: "Ordine completato · {0} aggiunti",
@@ -798,6 +808,7 @@
             unnamed: "(asset senza nome)"
         },
         "pl": {
+            logCheckoutNoScan: "Strona płatności nie jest skanowana, rozpocznij na stronie wyszukiwania",
             cartMiss: "Koszyk pusty, ale w bibliotece nic nie przybyło",
             cartBtn: "Zapłać ({0})",
             cartAsk: "Dodano {0} darmowych pozycji do koszyka — dokończ zamówienie na otwartej stronie", cartWait: "Oczekiwanie na zamówienie · koszyk {0}", cartDone: "Zamówienie złożone · dodano {0}",
@@ -868,6 +879,7 @@
             unnamed: "(zasób bez nazwy)"
         },
         "pt-BR": {
+            logCheckoutNoScan: "A página de pagamento não é analisada, comece em uma página de busca",
             cartMiss: "Carrinho vazio, mas nada novo na biblioteca",
             cartBtn: "Finalizar ({0})",
             cartAsk: "{0} itens gratuitos adicionados ao carrinho — conclua o pedido na página aberta", cartWait: "Aguardando o pedido · carrinho {0}", cartDone: "Pedido concluído · {0} adicionados",
@@ -938,6 +950,7 @@
             unnamed: "(asset sem nome)"
         },
         "ru": {
+            logCheckoutNoScan: "Страница оплаты не сканируется, начните со страницы поиска",
             cartMiss: "Корзина пуста, но в библиотеке ничего не появилось",
             cartBtn: "Оплатить ({0})",
             cartAsk: "В корзину добавлено бесплатных товаров: {0} — завершите оформление на открытой странице", cartWait: "Ожидание оформления · корзина {0}", cartDone: "Оформление завершено · добавлено {0}",
@@ -1008,6 +1021,7 @@
             unnamed: "(ассет без имени)"
         },
         "tr": {
+            logCheckoutNoScan: "Ödeme sayfası taranmaz, arama sayfasından başlayın",
             cartMiss: "Sepet boş ama kütüphaneye yeni bir şey eklenmedi",
             cartBtn: "Öde ({0})",
             cartAsk: "{0} ücretsiz öğe sepete eklendi — açılan sayfada siparişi tamamla", cartWait: "Sipariş bekleniyor · sepet {0}", cartDone: "Sipariş tamamlandı · {0} eklendi",
@@ -1078,6 +1092,7 @@
             unnamed: "(adsız varlık)"
         },
         "ar": {
+            logCheckoutNoScan: "صفحة الدفع لا يتم فحصها، ابدأ من صفحة البحث",
             cartMiss: "السلة فارغة لكن لم يصل شيء جديد إلى مكتبتك",
             cartBtn: "إتمام الشراء ({0})",
             cartAsk: "تمت إضافة {0} من العناصر المجانية إلى السلة — أكمل الطلب في الصفحة المفتوحة", cartWait: "بانتظار إتمام الطلب · السلة {0}", cartDone: "تم إتمام الطلب · أضيف {0}",
@@ -2196,6 +2211,7 @@
 
     async function start(opts) {
         opts = opts || {};
+        if (isCheckoutPage()) { log(t("logCheckoutNoScan")); return; }
         if (runtime.running) { log(t("logAlreadyRunning")); return; }
         if (!getCSRFToken()) { toast(t("toastCsrf"), "error", 5000); return; }
 
@@ -2809,7 +2825,11 @@
         const canImport = runtime.queue.length > 0 && (!runtime.running || runtime.paused);
         el.btnImport.style.display = canImport ? "inline-block" : "none";
         el.btnImport.textContent = t("importBtn", runtime.queue.length);
-        if (el.scope) el.scope.textContent = t("scopePrefix", describeScope());
+        if (el.scope) {
+            let scopeText = describeScope();
+            if (scopeText.length > 120) scopeText = scopeText.slice(0, 118) + "…";
+            el.scope.textContent = t("scopePrefix", scopeText);
+        }
         if (el.btnCart) {
             const n = (runtime.carted || []).length;
             el.btnCart.style.display = (n && !runtime.running) ? "block" : "none";
@@ -2826,8 +2846,18 @@
         syncFeedBottom();
     }
 
+    // The cart and the Epic checkout page are not places to scan from: the panel
+    // would sit on top of the payment form and its scope line would echo the
+    // whole checkout URL. Those pages stay clean, and the run that parked the
+    // items keeps watching the cart from its own tab.
+    function isCheckoutPage() {
+        const p = location.pathname || "";
+        return /^\/(cart|payment)(\/|$)/i.test(p) || /\/payment\/web\//i.test(p);
+    }
+
     function buildUI() {
         if (document.getElementById(PANEL_ID)) return;
+        if (isCheckoutPage()) return;
 
         const panel = document.createElement("div");
         panel.id = PANEL_ID;
@@ -2843,7 +2873,7 @@
         const head = document.createElement("div");
         Object.assign(head.style, { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" });
         const title = document.createElement("strong");
-        title.textContent = t("name") + " v3.7.8";
+        title.textContent = t("name") + " v3.7.9";
         title.style.fontSize = "13px";
         const headRight = document.createElement("span");
         headRight.style.cssText = "display:inline-flex;align-items:center;gap:6px;min-width:0";
