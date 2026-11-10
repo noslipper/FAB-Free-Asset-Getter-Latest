@@ -50,6 +50,10 @@
 
 ## 版本历史
 
+- **v3.7.7** — 主要变化：
+  - **合集不再被误判为已拥有**：账号只要拥有合集里的任意一条子资产，状态接口就返回「已拥有」，整包因此被跳过。合集现在不参与这项判断，一律走购物车。
+  - **合集直通购物车**：合集不再先发一次注定返回 400 的领取请求，直接取许可加购，单条少一趟往返。
+  - **请求超时**：单个请求 20 秒兜底，避免某条连接卡住让整轮停在原地。
 - **v3.7.6** — 主要变化：
   - **合集走购物车**：合集（bundle）和同样无法通过领取接口入库的免费资产，脚本自动取用对应许可并加入购物车，扫完后在面板上给出「结账（n）」入口，一次性结账即可把它们收进库。
   - **结账后收尾**：结账页的人机验证需要本人完成，脚本会一直盯着购物车，等订单落地后核对库里是否真的到手，再计入新增并播放完成特效；购物车空了但库里没东西时不会报成功。
@@ -128,6 +132,10 @@ A Tampermonkey script that collects all free assets from the FAB marketplace int
 
 ## Version History
 
+- **v3.7.7** — what changed:
+  - **Bundles are no longer misread as owned**: owning any single listing inside a bundle makes the state endpoint answer acquired, which used to skip the whole bundle. Bundles are now excluded from that check and always go to the cart.
+  - **Bundles go straight to the cart**: the claim request that could only return 400 is skipped, so each bundle costs one less round trip.
+  - **Request timeout**: a 20 second ceiling per request, so one stalled connection cannot freeze the run.
 - **v3.7.6** — what changed:
   - **Bundles go through the cart**: bundles, and any other free type the claim endpoint refuses, are added to the cart with the right licence automatically; when the scan ends the panel offers a Checkout(n) entry that collects them in one order.
   - **The finish waits for the order**: the human check on the checkout page stays with the person, so the script watches the cart, then verifies the library really has the assets before counting them and playing the finish effect; an emptied cart with nothing acquired is reported as a miss, not a success.

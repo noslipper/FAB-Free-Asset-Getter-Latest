@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        FAB Free Asset Getter
 // @namespace   https://greasyfork.org/en/users/313682-没拖鞋
-// @version     3.7.6
+// @version     3.7.7
 // @description Bulk-import free FAB assets (whole free catalogue or one seller) into your library through the FAB API: streaming scan-and-import in adjustable batches, optional ownership check, resumable cursor. Fork of the original by subtixx.
 // @author      noslipper
 // @homepageURL https://greasyfork.org/zh-CN/scripts/534044-fab-free-asset-getter
@@ -1436,6 +1436,18 @@
         }
     }
 
+    // Every request gets a hard ceiling: one connection that never answers
+    // would otherwise freeze a worker for the rest of the run.
+    async function fetchWithTimeout(url, opts, ms) {
+        const ac = new AbortController();
+        const timer = setTimeout(function () { try { ac.abort(); } catch (e) { /* ignore */ } }, ms || 20000);
+        try {
+            return await fetch(url, Object.assign({}, opts || {}, { signal: ac.signal }));
+        } finally {
+            clearTimeout(timer);
+        }
+    }
+
     async function requestJson(url, retries, credentials) {
         retries = retries == null ? CONFIG.retries : retries;
         credentials = credentials || "same-origin";
@@ -1443,7 +1455,7 @@
         for (let attempt = 0; attempt <= retries; attempt++) {
             if (runtime.aborted) return { ok: false, aborted: true, status: -2 };
             try {
-                const r = await fetch(url, { headers: apiHeaders(), credentials: credentials });
+                const r = await fetchWithTimeout(url, { headers: apiHeaders(), credentials: credentials });
                 const ct = (r.headers.get("content-type") || "").toLowerCase();
                 if (r.status === 401) return { ok: false, status: 401, auth: true };
 
@@ -1548,7 +1560,7 @@
         for (let attempt = 0; attempt <= CONFIG.retries; attempt++) {
             if (runtime.aborted) return { ok: false, aborted: true };
             try {
-                const r = await fetch("/i/cart/items", {
+                const r = await fetchWithTimeout("/i/cart/items", {
                     method: "POST",
                     headers: apiHeaders({ "Accept": "application/json", "Content-Type": "application/json" }),
                     body: JSON.stringify({ listingLicense: listingLicenseId }),
@@ -1661,7 +1673,7 @@
             try {
                 const fd = new FormData();
                 fd.append("offer_id", offerId);
-                const r = await fetch("/i/listings/" + uid + "/add-to-library", {
+                const r = await fetchWithTimeout("/i/listings/" + uid + "/add-to-library", {
                     method: "POST",
                     headers: apiHeaders({ "Accept": "*/*" }),
                     body: fd,
@@ -1828,7 +1840,12 @@
                 const owned = await fetchOwned(list.map(function (x) { return x.uid; }));
                 let pushed = 0;
                 list.forEach(function (it) {
-                    if (owned.has(it.uid)) { runtime.stats.skipped++; return; }
+                    // A bundle reports acquired=true as soon as the account owns
+                    // any single listing inside it, so that flag cannot be read as
+                    // "you already own this bundle". Bundles are free and the cart
+                    // add is idempotent, so they always go through.
+                    const bundle = /bundle/i.test(it.listingType || "");
+                    if (!bundle && owned.has(it.uid)) { runtime.stats.skipped++; return; }
                     if (runtime.queue.some(function (x) { return x.uid === it.uid; })) return;
                     runtime.queue.push(it);
                     pushed++;
@@ -1940,9 +1957,29 @@
         return { none: true };
     }
 
+    // Park one item in the cart and record it in every place that tracks it.
+    function markCarted(item) {
+        runtime.stats.carted = (runtime.stats.carted || 0) + 1;
+        runtime.carted.push(item.uid);
+        if (!store.carted) store.carted = {};
+        store.carted[item.uid] = 1;
+        saveCartPending();
+        assetBubble(item.title, runtime.stats.carted);   // the bubble marks it as queued
+        render();
+    }
+
     async function addOne(item) {
         if (runtime.aborted) return;
         if (store.done[item.uid]) { runtime.stats.skipped++; return; }
+
+        // A bundle can never be claimed through add-to-library: that endpoint
+        // always answers 400 "Listing is a bundle.". Going straight to the cart
+        // saves the round trip that would only be thrown away.
+        if (/bundle/i.test(item.listingType || "")) {
+            if (await addToCart(item)) markCarted(item);
+            else { runtime.stats.failed++; runtime.failStreak = (runtime.failStreak || 0) + 1; store.failed[item.uid] = "cart"; }
+            return;
+        }
 
         let offerId = item.offerId || "";
 
@@ -2010,13 +2047,7 @@
                 carted = await addToCart(item);
             }
             if (carted) {
-                runtime.stats.carted = (runtime.stats.carted || 0) + 1;
-                runtime.carted.push(item.uid);
-                if (!store.carted) store.carted = {};
-                store.carted[item.uid] = 1;
-                saveCartPending();
-                assetBubble(item.title, runtime.stats.carted);   // the bubble marks it as queued
-                render();
+                markCarted(item);
             } else {
                 runtime.stats.failed++;
                 runtime.failStreak = (runtime.failStreak || 0) + 1;
@@ -2799,7 +2830,7 @@
         const head = document.createElement("div");
         Object.assign(head.style, { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" });
         const title = document.createElement("strong");
-        title.textContent = t("name") + " v3.7.6";
+        title.textContent = t("name") + " v3.7.7";
         title.style.fontSize = "13px";
         const headRight = document.createElement("span");
         headRight.style.cssText = "display:inline-flex;align-items:center;gap:6px;min-width:0";
