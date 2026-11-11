@@ -50,6 +50,12 @@
 
 ## 版本历史
 
+- **v3.8.1** — 主要变化：
+  - **每轮先回读最新页**：新上架的资产只会出现在按发布时间排序的索引头部，只从断点续跑永远看不到。现在每轮先按最新发布读头部 12 页（约 288 条），再跳回上次的断点继续，续跑不再漏掉刚上架的免费资产；头部页数由 `CONFIG.headPages` 控制。
+  - **待结账清单与购物车对账**：面板显示「结账(n)」前、点击结账按钮前，都会回读 `/i/cart` 核对本地记录，购物车里已经不存在的条目自动剔除，不会再出现「按钮上写着有货、点进去是空车」。
+  - **结账入口先探测**：点结账时先在后台核对购物车，确实有货才打开购物车页，购物车为空时直接提示并关掉空白标签页。
+  - **清空记录更彻底**：清空记录会一并清除待结账清单与结账轮询，「结账(n)」按钮不再残留。
+  - **页计数按轮重置**：`maxPages` 作为单轮上限，累计页数不再越跑越接近封顶。
 - **v3.8.0** — 主要变化：
   - **合集归属判断更精确**：合集只要拥有其中任意一条子资产，状态接口就会返回「已拥有」，仅凭这一项会漏掉尚未拥有的合集。现在只有拿到真实的资产授权才判定为已拥有，其余合集照常加入购物车；判定方式可在 `CONFIG.bundleOwnedCheck`（`auto` / `on` / `off`）中切换。
   - **待结账清单不再重复**：已入库的资产不会再于下一轮恢复为待结账项；加购前先比对本地待结账记录，网络抖动也不会把同一条资产重复入车。
@@ -143,6 +149,12 @@ A Tampermonkey script that collects all free assets from the FAB marketplace int
 
 ## Version History
 
+- **v3.8.1** — what changed:
+  - **The head of the index is re-read every run**: newly published assets only appear at the top of the newest-first index, and a run that only resumes the saved cursor never sees them. Each run now walks the newest 12 pages (about 288 listings) first and then jumps back to the saved break point, so newly listed free assets are no longer missed. The window size is `CONFIG.headPages`.
+  - **The pending list is reconciled with the real cart**: before the panel advertises Checkout(n), and before the checkout button opens the cart, the local list is checked against `/i/cart` and entries the cart no longer holds are dropped, so a button that claims items can never lead to an empty cart.
+  - **The checkout entry probes first**: clicking checkout checks the cart in the background and opens the cart page only when it really holds something; an empty cart gets a notice and the blank tab is closed again.
+  - **Clearing records is thorough now**: clearing also removes the pending-cart list and the checkout poller, so the Checkout(n) button no longer survives a clear.
+  - **The page counter restarts every run**: `maxPages` is a per-run ceiling, so a lifetime counter can no longer creep towards the cap.
 - **v3.8.0** — what changed:
   - **Sharper bundle ownership test**: a bundle reports itself as owned as soon as the account owns any single listing inside it, and that flag alone skipped bundles that were never acquired. Only a real entitlement now counts as ownership; every other bundle still goes to the cart. The behaviour is switchable through `CONFIG.bundleOwnedCheck` (`auto` / `on` / `off`).
   - **No duplicate pending cart items**: assets already in the library are never restored as pending cart items on the next run, and the local pending record is checked before adding, so a network hiccup cannot put the same asset into the cart twice.

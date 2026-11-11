@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        FAB Free Asset Getter
 // @namespace   https://greasyfork.org/en/users/313682-没拖鞋
-// @version     3.8.0
+// @version     3.8.1
 // @description Bulk-import free FAB assets (whole free catalogue or one seller) into your library through the FAB API: streaming scan-and-import in adjustable batches, optional ownership check, resumable cursor. Fork of the original by subtixx.
 // @author      noslipper
 // @homepageURL https://greasyfork.org/zh-CN/scripts/534044-fab-free-asset-getter
@@ -75,6 +75,10 @@
         // 3000 pages x 24 listings covers the whole free catalogue (~47k).
         // The page counter persists, so a rerun continues where it stopped.
         maxPages: 3000,           // safety stop for one run
+        // New listings land at the head of the newest-first index, so a run that
+        // only resumes the saved cursor never sees them. Every run re-reads this
+        // many pages from the head first, then jumps back to the saved cursor.
+        headPages: 12,
         retries: 3,
         waveDelay: 45,            // ms of rest between two assets on the same worker
         waveJitter: 120,          // extra random spread so the burst stays polite
@@ -109,6 +113,8 @@
     const I18N = {
         "en": {
             logCheckoutNoScan: "Checkout page: nothing to scan here, start from a search page",
+            cartEmptyNow: "Cart is empty — stale checkout records cleared",
+            logCartReconciled: "Cart check: {0} pending records are no longer in the cart, dropped",
             cartMiss: "Cart is empty but nothing new reached your library",
             cartBtn: "Checkout ({0})",
             cartAsk: "Added {0} free items to the cart — finish the checkout to collect them", cartWait: "Waiting for checkout · cart {0}", cartDone: "Checkout done · {0} added",
@@ -180,6 +186,8 @@
         },
         "zh-CN": {
             logCheckoutNoScan: "结账页不扫描，请回到搜索页开始",
+            cartEmptyNow: "购物车是空的，已清除失效的待结账记录",
+            logCartReconciled: "购物车核对：{0} 条待结账记录已不在购物车，已清除",
             cartMiss: "购物车已空，但库里没有新增资产",
             cartBtn: "结账（{0}）",
             cartAsk: "已把 {0} 个免费合集加入购物车，请在打开的结账页完成验证", cartWait: "等待结账 · 购物车 {0} 件", cartDone: "结账完成 · 入库 {0} 件",
@@ -251,6 +259,8 @@
         },
         "zh-TW": {
             logCheckoutNoScan: "結帳頁不掃描，請回到搜尋頁開始",
+            cartEmptyNow: "購物車是空的，已清除失效的待結帳紀錄",
+            logCartReconciled: "購物車核對：{0} 筆待結帳紀錄已不在購物車，已清除",
             cartMiss: "購物車已空，但庫中沒有新增資產",
             cartBtn: "結帳（{0}）",
             cartAsk: "已把 {0} 個免費合集加入購物車，請在開啟的結帳頁完成驗證", cartWait: "等待結帳 · 購物車 {0} 件", cartDone: "結帳完成 · 入庫 {0} 件",
@@ -322,6 +332,8 @@
         },
         "ja": {
             logCheckoutNoScan: "決済ページではスキャンしません。検索ページから開始してください",
+            cartEmptyNow: "カートは空です — 無効な決済記録を削除しました",
+            logCartReconciled: "カート確認：{0} 件の保留記録がカートにないため削除しました",
             cartMiss: "カートは空ですが、ライブラリに追加されたものはありません",
             cartBtn: "決済（{0}）",
             cartAsk: "無料の商品 {0} 件をカートに入れました。開いた決済ページで確認を完了してください", cartWait: "決済待ち · カート {0} 件", cartDone: "決済完了 · {0} 件追加",
@@ -393,6 +405,8 @@
         },
         "ko": {
             logCheckoutNoScan: "결제 페이지에서는 스캔하지 않습니다. 검색 페이지에서 시작하세요",
+            cartEmptyNow: "장바구니가 비어 있습니다 — 만료된 결제 기록을 정리했습니다",
+            logCartReconciled: "장바구니 확인: {0}건의 대기 기록이 장바구니에 없어 삭제했습니다",
             cartMiss: "장바구니는 비었지만 라이브러리에 추가된 항목이 없습니다",
             cartBtn: "결제 ({0})",
             cartAsk: "무료 항목 {0}개를 장바구니에 담았습니다. 열린 결제 페이지에서 인증을 완료하세요", cartWait: "결제 대기 · 장바구니 {0}개", cartDone: "결제 완료 · {0}개 추가",
@@ -464,6 +478,8 @@
         },
         "de": {
             logCheckoutNoScan: "Bezahlseite wird nicht gescannt, bitte auf einer Suchseite starten",
+            cartEmptyNow: "Warenkorb ist leer — veraltete Checkout-Einträge entfernt",
+            logCartReconciled: "Warenkorb-Prüfung: {0} offene Einträge sind nicht mehr im Warenkorb, entfernt",
             cartMiss: "Warenkorb leer, aber nichts Neues in der Bibliothek",
             cartBtn: "Bezahlen ({0})",
             cartAsk: "{0} kostenlose Artikel in den Warenkorb gelegt — schließe die Bestellung auf der geöffneten Seite ab", cartWait: "Warte auf die Bestellung · Warenkorb {0}", cartDone: "Bestellung abgeschlossen · {0} hinzugefügt",
@@ -535,6 +551,8 @@
         },
         "fr": {
             logCheckoutNoScan: "La page de paiement n'est pas analysée, lancez depuis une page de recherche",
+            cartEmptyNow: "Panier vide — les entrées de paiement obsolètes ont été supprimées",
+            logCartReconciled: "Vérification du panier : {0} entrées en attente ne sont plus dans le panier, supprimées",
             cartMiss: "Panier vide, mais rien de nouveau dans la bibliothèque",
             cartBtn: "Commander ({0})",
             cartAsk: "{0} articles gratuits ajoutés au panier — termine la commande sur la page ouverte", cartWait: "En attente de la commande · panier {0}", cartDone: "Commande terminée · {0} ajoutés",
@@ -606,6 +624,8 @@
         },
         "es-ES": {
             logCheckoutNoScan: "La página de pago no se escanea, inicia desde una página de búsqueda",
+            cartEmptyNow: "El carrito está vacío — se borraron los registros de pago obsoletos",
+            logCartReconciled: "Comprobación del carrito: {0} registros pendientes ya no están en el carrito, borrados",
             cartMiss: "Carrito vacío, pero nada nuevo en la biblioteca",
             cartBtn: "Pagar ({0})",
             cartAsk: "{0} artículos gratuitos añadidos al carrito: completa la compra en la página abierta", cartWait: "Esperando la compra · carrito {0}", cartDone: "Compra completada · {0} añadidos",
@@ -677,6 +697,8 @@
         },
         "es-LA": {
             logCheckoutNoScan: "La página de pago no se escanea, inicia desde una página de búsqueda",
+            cartEmptyNow: "El carrito está vacío — se eliminaron los registros de pago obsoletos",
+            logCartReconciled: "Revisión del carrito: {0} registros pendientes ya no están en el carrito, eliminados",
             cartMiss: "Carrito vacío, pero nada nuevo en la biblioteca",
             cartBtn: "Pagar ({0})",
             cartAsk: "{0} artículos gratuitos añadidos al carrito: completa la compra en la página abierta", cartWait: "Esperando la compra · carrito {0}", cartDone: "Compra completada · {0} añadidos",
@@ -748,6 +770,8 @@
         },
         "it": {
             logCheckoutNoScan: "La pagina di pagamento non viene analizzata, avvia da una pagina di ricerca",
+            cartEmptyNow: "Carrello vuoto — voci di checkout obsolete rimosse",
+            logCartReconciled: "Controllo carrello: {0} voci in sospeso non sono più nel carrello, rimosse",
             cartMiss: "Carrello vuoto, ma nulla di nuovo nella libreria",
             cartBtn: "Paga ({0})",
             cartAsk: "{0} articoli gratuiti aggiunti al carrello: completa l'ordine nella pagina aperta", cartWait: "In attesa dell'ordine · carrello {0}", cartDone: "Ordine completato · {0} aggiunti",
@@ -819,6 +843,8 @@
         },
         "pl": {
             logCheckoutNoScan: "Strona płatności nie jest skanowana, rozpocznij na stronie wyszukiwania",
+            cartEmptyNow: "Koszyk jest pusty — usunięto nieaktualne wpisy zamówienia",
+            logCartReconciled: "Sprawdzenie koszyka: {0} oczekujących wpisów nie ma już w koszyku, usunięto",
             cartMiss: "Koszyk pusty, ale w bibliotece nic nie przybyło",
             cartBtn: "Zapłać ({0})",
             cartAsk: "Dodano {0} darmowych pozycji do koszyka — dokończ zamówienie na otwartej stronie", cartWait: "Oczekiwanie na zamówienie · koszyk {0}", cartDone: "Zamówienie złożone · dodano {0}",
@@ -890,6 +916,8 @@
         },
         "pt-BR": {
             logCheckoutNoScan: "A página de pagamento não é analisada, comece em uma página de busca",
+            cartEmptyNow: "O carrinho está vazio — registros de checkout obsoletos foram removidos",
+            logCartReconciled: "Verificação do carrinho: {0} registros pendentes não estão mais no carrinho, removidos",
             cartMiss: "Carrinho vazio, mas nada novo na biblioteca",
             cartBtn: "Finalizar ({0})",
             cartAsk: "{0} itens gratuitos adicionados ao carrinho — conclua o pedido na página aberta", cartWait: "Aguardando o pedido · carrinho {0}", cartDone: "Pedido concluído · {0} adicionados",
@@ -961,6 +989,8 @@
         },
         "ru": {
             logCheckoutNoScan: "Страница оплаты не сканируется, начните со страницы поиска",
+            cartEmptyNow: "Корзина пуста — устаревшие записи оформления удалены",
+            logCartReconciled: "Проверка корзины: {0} записей ожидания больше нет в корзине, удалены",
             cartMiss: "Корзина пуста, но в библиотеке ничего не появилось",
             cartBtn: "Оплатить ({0})",
             cartAsk: "В корзину добавлено бесплатных товаров: {0} — завершите оформление на открытой странице", cartWait: "Ожидание оформления · корзина {0}", cartDone: "Оформление завершено · добавлено {0}",
@@ -1032,6 +1062,8 @@
         },
         "tr": {
             logCheckoutNoScan: "Ödeme sayfası taranmaz, arama sayfasından başlayın",
+            cartEmptyNow: "Sepet boş — eski ödeme kayıtları temizlendi",
+            logCartReconciled: "Sepet kontrolü: {0} bekleyen kayıt artık sepette değil, silindi",
             cartMiss: "Sepet boş ama kütüphaneye yeni bir şey eklenmedi",
             cartBtn: "Öde ({0})",
             cartAsk: "{0} ücretsiz öğe sepete eklendi — açılan sayfada siparişi tamamla", cartWait: "Sipariş bekleniyor · sepet {0}", cartDone: "Sipariş tamamlandı · {0} eklendi",
@@ -1103,6 +1135,8 @@
         },
         "ar": {
             logCheckoutNoScan: "صفحة الدفع لا يتم فحصها، ابدأ من صفحة البحث",
+            cartEmptyNow: "السلة فارغة — تم مسح سجلات الدفع القديمة",
+            logCartReconciled: "فحص السلة: {0} سجلات معلّقة لم تعد في السلة، تم حذفها",
             cartMiss: "السلة فارغة لكن لم يصل شيء جديد إلى مكتبتك",
             cartBtn: "إتمام الشراء ({0})",
             cartAsk: "تمت إضافة {0} من العناصر المجانية إلى السلة — أكمل الطلب في الصفحة المفتوحة", cartWait: "بانتظار إتمام الطلب · السلة {0}", cartDone: "تم إتمام الطلب · أضيف {0}",
@@ -1395,7 +1429,7 @@
                 }
             }
         } catch (e) { /* broken cache */ }
-        store = { key: key, cursor: null, pages: 0, done: {}, failed: {}, added: 0 };
+        store = { key: key, cursor: null, pages: 0, done: {}, failed: {}, carted: {}, added: 0 };
         runtime.cursor = null;
         runtime.pages = 0;
     }
@@ -1428,6 +1462,11 @@
 
     function clearStore() {
         try { localStorage.removeItem(STORE_PREFIX + store.key); } catch (e) { /* ignore */ }
+        // The pending-cart list is part of the local state this button resets;
+        // leaving it behind is what kept "checkout (N)" alive after a clear.
+        try { localStorage.removeItem(CART_KEY); } catch (e) { /* ignore */ }
+        if (runtime.cartTimer) { clearInterval(runtime.cartTimer); runtime.cartTimer = null; }
+        runtime.carted = [];
         store = { key: scopeKey(), cursor: null, pages: 0, done: {}, failed: {}, carted: {}, added: 0 };
         runtime.cursor = null;
         runtime.pages = 0;
@@ -1639,6 +1678,36 @@
         }
     }
 
+    // The panel counts what this browser thinks is parked in the cart, and that
+    // list outlives the cart itself: FAB empties the cart after an order, a
+    // person can clear it by hand, and a run can end without the order ever
+    // being placed. So the local list is checked against the real cart before
+    // it is shown as "checkout (N)" or used to re-add anything.
+    async function reconcileCart() {
+        if (!runtime.carted || !runtime.carted.length) return;
+        let r = null;
+        try { r = await requestJson("/i/cart", 0); } catch (e) { return; }
+        if (!r || !r.ok || !r.data) return;
+        const items = Array.isArray(r.data.items) ? r.data.items : [];
+        const present = items.map(function (i) { return i && i.listingUid; }).filter(Boolean);
+        // A non-empty cart that matches none of the recorded uids means the two
+        // sides name the same thing differently: trusting that result would wipe
+        // a valid list, so nothing is changed in that case.
+        if (present.length && !present.some(function (u) { return runtime.carted.indexOf(u) >= 0; })) return;
+        const keep = runtime.carted.filter(function (u) { return present.indexOf(u) >= 0; });
+        if (keep.length === runtime.carted.length) return;
+        const dropped = runtime.carted.length - keep.length;
+        runtime.carted = keep;
+        if (store.carted) {
+            Object.keys(store.carted).forEach(function (u) {
+                if (present.indexOf(u) < 0) delete store.carted[u];
+            });
+        }
+        saveCartPending();
+        saveStore();
+        log(t("logCartReconciled", dropped));
+    }
+
     // After the run: open the cart, keep the panel honest about what it is
     // waiting for, and watch the cart until the order goes through.
     async function checkoutCarted() {
@@ -1646,6 +1715,8 @@
         // is what produced a cart full of owned items and an order that added
         // nothing.
         runtime.carted = (runtime.carted || []).filter(function (u) { return !store.done[u]; });
+        // Anything the cart itself no longer holds is not payable either.
+        await reconcileCart();
         const n = runtime.carted.length;
         if (!n) { saveCartPending(); return; }
         // One last look at the cart: a request that reported success can still
@@ -1764,6 +1835,10 @@
         }
 
         const q = baseParams();
+        // While re-reading the head, always ask for the newest first: the page
+        // itself may be sorted by relevance or price, and then the newest
+        // listings are not at the top at all.
+        if (!runtime.headDone) q.set("sort_by", "-firstPublishedAt");
         if (runtime.cursor) q.set("cursor", runtime.cursor);
 
         const r = await requestJson("/i/listings/search?" + q.toString(), CONFIG.retries, scanCredentials());
@@ -1823,17 +1898,30 @@
         queueCandidates(candidates);
 
         runtime.pages++;
+        if (runtime.headLeft > 0) runtime.headLeft--;
+        // Head pages done: jump back to where the previous run stopped.
+        if (!runtime.headDone && runtime.headLeft <= 0 && runtime.resumeCursor) {
+            runtime.headDone = true;
+            runtime.cursor = runtime.resumeCursor;
+            runtime.resumeCursor = null;
+            delete store.resumeCursor;
+            saveStore();
+        }
         runtime.stats.indexed += fresh;
         runtime.stats.pending = runtime.queue.length;
 
         // Cursor keeps moving but the page yields nothing new: the index has been
         // cycling back to the same slice, so this is a real ceiling, not a throttle.
         if (fresh === 0) {
-            runtime.dupStreak = (runtime.dupStreak || 0) + 1;
+            // The head pages are usually all owned already on a big account.
+            // That proves nothing, and treating it as the end would stop before
+            // the jump back to the real break point.
+            if (!runtime.headDone) runtime.dupStreak = 0;
+            else runtime.dupStreak = (runtime.dupStreak || 0) + 1;
             // A big account can walk through slices that are entirely owned, or
             // a page the server repeats while throttling; 12 pages stopped such a
             // scan far too early, 25 is a ceiling worth trusting.
-            if (runtime.dupStreak >= 25) {
+            if (runtime.headDone && runtime.dupStreak >= 25) {
                 log(t("logDupPages", runtime.dupStreak));
                 runtime.endReached = true;
             }
@@ -1848,6 +1936,14 @@
         if (nextCursor) {
             runtime.noNextStreak = 0;
             runtime.cursor = nextCursor;
+        } else if (results.length > 0 && results.length < CONFIG.pageSize && !runtime.headDone && runtime.resumeCursor) {
+            // The newest slice ran out while re-reading the head: that is not the
+            // end of the catalogue the saved cursor points into, so jump back now.
+            runtime.headDone = true;
+            runtime.headLeft = 0;
+            runtime.cursor = runtime.resumeCursor;
+            runtime.resumeCursor = null;
+            delete store.resumeCursor;
         } else if (results.length > 0 && results.length < CONFIG.pageSize) {
             // A short page is proof the index ran out: a throttled answer still
             // fills the window it was asked for, it only withholds the cursor.
@@ -2270,6 +2366,21 @@
         runtime.stats.carted = 0;
         runtime.phase = "scan";
         runtime.queue = [];
+        // The saved cursor is where the last run stopped; it is not where the new
+        // listings are. Re-read the head of the index on every run, then jump back
+        // to that cursor so the rest is not rescanned.
+        runtime.resumeCursor = store.resumeCursor || store.cursor || null;
+        // Keep it in the store too: saveStore writes store.cursor as the head
+        // moves, and without a separate copy the old break point would be lost if
+        // this run is interrupted before the jump.
+        if (runtime.resumeCursor) store.resumeCursor = runtime.resumeCursor;
+        else delete store.resumeCursor;
+        runtime.headLeft = runtime.resumeCursor ? (CONFIG.headPages || 0) : 0;
+        runtime.headDone = !runtime.headLeft;
+        runtime.cursor = null;
+        // maxPages is a per-run ceiling, so the page counter starts over; a
+        // lifetime counter would eventually lock scanning out for good.
+        runtime.pages = 0;
         const pending = loadCartPending();
         runtime.carted = pending.slice(0);
         // A uid that already reached the library must not come back as a
@@ -2943,7 +3054,7 @@
         const head = document.createElement("div");
         Object.assign(head.style, { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" });
         const title = document.createElement("strong");
-        title.textContent = t("name") + " v3.8.0";
+        title.textContent = t("name") + " v3.8.1";
         title.style.fontSize = "13px";
         const headRight = document.createElement("span");
         headRight.style.cssText = "display:inline-flex;align-items:center;gap:6px;min-width:0";
@@ -3044,7 +3155,23 @@
         btnCart.style.cssText = "display:none;width:100%;margin:4px 0 6px;padding:5px 8px;border-radius:6px;" +
             "border:1px solid #45C761;background:rgba(69,199,97,.14);color:#8ff0a6;cursor:pointer;font-size:12px";
         btnCart.onclick = function () {
-            window.open(BASE_HOST + "/cart", "_blank");
+            // Open synchronously so the click still counts as a user gesture.
+            // The probe is closed again when the cart turns out to be empty;
+            // otherwise it navigates to the real cart page.
+            const had = (runtime.carted || []).length;
+            const probe = window.open("about:blank", "_blank");
+            reconcileCart().then(function () {
+                render();
+                if ((runtime.carted || []).length) {
+                    if (probe) probe.location = BASE_HOST + "/cart";
+                    else window.open(BASE_HOST + "/cart", "_blank");
+                    return;
+                }
+                if (probe) probe.close();
+                if (had) toast(t("cartEmptyNow"), "warning", 5000);
+            }).catch(function () {
+                if (probe) probe.location = BASE_HOST + "/cart";
+            });
         };
         panel.appendChild(btnCart);
 
@@ -3196,7 +3323,12 @@
         // installed userscript plus a manual paste). Both check for the panel
         // before creating one, so they can still race: keep exactly one.
         keepSinglePanel(panel);
-        runtime.carted = loadCartPending();
+        loadStore();
+        runtime.carted = loadCartPending().filter(function (u) { return !store.done[u]; });
+        // The stored list may be a leftover from an order that already went
+        // through (or a cart cleared by hand). Check it against the real cart
+        // once the panel is up, so "checkout (N)" never advertises an empty cart.
+        reconcileCart().then(function () { render(); });
         render();
         loadMe();
         syncFeedBottom();
@@ -3218,6 +3350,15 @@
         importQueue: importQueue,
         reset: clearStore,
         scope: describeScope,
+        // Read-only view of the scan position, used to verify the head re-read
+        // and the jump back to the saved cursor.
+        info: function () {
+            return {
+                pages: runtime.pages, cursor: runtime.cursor, headLeft: runtime.headLeft,
+                headDone: runtime.headDone, resumeCursor: runtime.resumeCursor,
+                endReached: runtime.endReached, dupStreak: runtime.dupStreak
+            };
+        },
         markSaved: markSavedOnPage,
         doneFx: playDoneFx,
         cartLicense: resolveCartLicense,
