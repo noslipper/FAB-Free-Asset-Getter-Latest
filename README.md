@@ -52,6 +52,10 @@
 
 ## 版本历史
 
+- **v3.8.3** — 主要变化：
+  - **合集按子项逐条核对归属**：`ownsBundledListing` 与 `acquired` 一样，只要拥有其中一条子资产就为真，不能用来判断“整包已拥有”。现在读取合集的子项清单，逐条查询状态，只有全部子项都已拥有才跳过；只拥有部分的合集照常领取或加入购物车。
+  - **清空购物车改为一键执行并刷新页面**：去掉确认弹窗，点击后直接调用 `/i/cart/clear`，清空本地待结账清单与断点并提示，随后刷新页面，使站点自身的购物车角标与购物车页同步为已清空。
+  - **购物车只放个人许可并回读实价**：列表接口对个别收费档位同样返回 0 价，加购时改为优先选取个人许可，并在加入后回读购物车单价；单价不为 0 的条目立即从购物车移除，避免把付费内容带进订单。
 - **v3.8.2** — 主要变化：
   - **已拥有的合集不再进购物车**：合集是否整包已拥有改由 `/i/bundles/<uid>` 的 `ownsBundledListing` 判定。此前只看授权 id，已拥有的合集仍会被加进购物车，结账时整单报错；现在在领取阶段即跳过并计入「跳过」。
   - **面板新增「清空购物车」**：与「结账(n)」同行显示，二次确认后调用 `/i/cart/clear` 整包清空，同时清除本地待结账清单与断点记录；请求补齐 JSON 内容类型，不再因媒体类型不符被接口拒绝。
@@ -159,6 +163,10 @@ A Tampermonkey script that collects all free assets from the FAB marketplace int
 
 ## Version History
 
+- **v3.8.3** — what changed:
+  - **Bundle ownership is checked child by child**: `ownsBundledListing`, like `acquired`, turns true as soon as one bundled listing is owned, so it cannot answer "the whole bundle is already owned". The children are now read from the bundle and looked up one by one; only a bundle whose every child is owned is skipped, and a partly owned one is claimed or parked as usual.
+  - **Clearing the cart is one click and refreshes the page**: the confirm box is gone. The button calls `/i/cart/clear` directly, drops the local pending list and break point, shows a notice, and then reloads the page so the site's own cart badge and cart page match the empty cart.
+  - **Only the personal licence is parked, and the real price is read back**: the listing API reports a zero price for tiers the site still sells, so the personal licence is chosen first and the cart line is read back after adding; any line whose unit price is not zero is removed immediately, so nothing paid can reach the order.
 - **v3.8.2** — what changed:
   - **Bundles you already own no longer reach the cart**: whole-bundle ownership is now read from `ownsBundledListing` on `/i/bundles/<uid>`. The previous check only looked for a licence id, so owned bundles were still parked in the cart and made the checkout reject the whole order; they are now skipped during the claim step and counted as skipped.
   - **A cart clear button on the panel**: it sits on the same row as Checkout(n), asks once, then calls `/i/cart/clear` to empty the cart and drops the local pending list and the saved break point with it. The request now carries a JSON content type, so the endpoint no longer refuses it.

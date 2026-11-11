@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        FAB Free Asset Getter
 // @namespace   https://greasyfork.org/en/users/313682-没拖鞋
-// @version     3.8.2
+// @version     3.8.3
 // @description Bulk-import free FAB assets (whole free catalogue or one seller) into your library through the FAB API: streaming scan-and-import in adjustable batches, optional ownership check, resumable cursor. Fork of the original by subtixx.
 // @author      noslipper
 // @homepageURL https://greasyfork.org/zh-CN/scripts/534044-fab-free-asset-getter
@@ -1738,11 +1738,19 @@
             return pt.price === 0 || pt.price === "0" ||
                 pt.discountedPrice === 0 || pt.discountedPrice === "0";
         });
+        // The cart is the one place where a wrong tier costs money: the API
+        // reports price 0 for tiers the site still charges for, so the personal
+        // licence is taken first and the professional one only when no personal
+        // licence is offered at all.
         let pick = null;
         for (let i = 0; i < free.length; i++) {
             const slug = (free[i].slug || "").toLowerCase();
-            if (slug === "professional") { pick = free[i]; break; }
-            if (slug === "personal" && !pick) pick = free[i];
+            if (slug === "personal") { pick = free[i]; break; }
+        }
+        if (!pick) {
+            for (let i = 0; i < free.length; i++) {
+                if ((free[i].slug || "").toLowerCase() === "professional") { pick = free[i]; break; }
+            }
         }
         if (!pick) pick = free[0] || null;
         if (!pick) {
@@ -1784,7 +1792,17 @@
                     body: JSON.stringify({ listingLicense: listingLicenseId }),
                     credentials: "same-origin"
                 });
-                if (r.status === 200 || r.status === 201) { noteSuccess(); return { ok: true }; }
+                if (r.status === 200 || r.status === 201) {
+                    noteSuccess();
+                    let itemUid = "";
+                    let unitPrice = 0;
+                    try {
+                        const j = await r.clone().json();
+                        itemUid = j && j.uid ? j.uid : "";
+                        unitPrice = j && j.priceInfo && typeof j.priceInfo.unitPrice === "number" ? j.priceInfo.unitPrice : 0;
+                    } catch (e) { /* a body-less 201 still means the item landed */ }
+                    return { ok: true, itemUid: itemUid, unitPrice: unitPrice };
+                }
                 if (r.status === 401) return { ok: false, status: 401, auth: true };
                 const txt = await r.text().catch(function () { return ""; });
                 if (/already|exists|已在|重复/i.test(txt)) return { ok: true, already: true };
@@ -1802,16 +1820,33 @@
     }
 
     // Park one listing in the cart; returns true when it landed there.
-    // A bundle reports "acquired" as soon as one child is owned, so the state
-    // list cannot answer "do I already own this whole bundle". The bundle detail
-    // does: ownsBundledListing is true only when every child is accounted for,
-    // and adding a bundle the account already owns only clutters the cart and
-    // makes the checkout reject the order.
+    // Neither "acquired" nor ownsBundledListing answers "do I already own this
+    // whole bundle": both turn true as soon as a single child is owned. So the
+    // children are looked up one by one and the bundle only counts as owned when
+    // every one of them is accounted for.
     async function bundleAlreadyOwned(uid) {
         try {
             const r = await requestJson("/i/bundles/" + uid, 1);
             if (r.auth) throw { fatal: "auth" };
-            return !!(r.ok && r.data && r.data.ownsBundledListing === true);
+            if (!r.ok || !r.data) return false;
+            const kids = (r.data.bundledListings || []).filter(function (x) { return typeof x === "string"; });
+            // ownsBundledListing is true as soon as one child is owned, so it does
+            // not answer this question. Only every child accounted for means the
+            // whole bundle is already in the library; anything less still needs a
+            // claim or a place in the cart.
+            if (!kids.length) return false;
+            let owned = 0;
+            for (let i = 0; i < kids.length; i += CONFIG.stateChunkSize) {
+                const chunk = kids.slice(i, i + CONFIG.stateChunkSize);
+                const q = chunk.map(function (u) { return "listing_ids=" + u; }).join("&");
+                const st = await requestJson("/i/users/me/listings-states?" + q, 1);
+                if (st.auth) throw { fatal: "auth" };
+                const rows = (st.ok && Array.isArray(st.data)) ? st.data : [];
+                rows.forEach(function (row) {
+                    if (row && (row.acquired || row.entitlementId)) owned++;
+                });
+            }
+            return owned >= kids.length;
         } catch (e) {
             if (e && e.fatal) throw e;
             return false;
@@ -1832,7 +1867,22 @@
             if (!licId) return false;
             const r = await postCartItem(licId);
             if (r.auth) throw { fatal: "auth" };
-            return !!r.ok;
+            if (!r.ok) return false;
+            // The listing API reports price 0 for tiers the site still charges
+            // for, so the cart is the only place that knows the truth. A non-zero
+            // line is removed again immediately: a free-asset run must never leave
+            // something in the cart that would add money to the order.
+            const line = await cartLine(item.uid);
+            if (line && line.unitPrice > 0) {
+                if (line.itemUid) await deleteCartItem(line.itemUid);
+                // Not "done": the asset was never obtained, it is only not worth
+                // paying for, so it is recorded apart from the library state.
+                store.paid = store.paid || {};
+                store.paid[item.uid] = 1;
+                runtime.stats.skipped++;
+                return false;
+            }
+            return true;
         } catch (e) {
             if (e && e.fatal) throw e;
             return false;
@@ -1844,6 +1894,44 @@
     // person can clear it by hand, and a run can end without the order ever
     // being placed. So the local list is checked against the real cart before
     // it is shown as "checkout (N)" or used to re-add anything.
+    // The cart item behind a listing uid, with its real unit price. A POST to
+    // /i/cart/items answers without priceInfo, so the price is read back from
+    // /i/cart: that is the only place where a tier the listing API calls free
+    // shows up as a charged line.
+    async function cartLine(uid) {
+        try {
+            const r = await requestJson("/i/cart", 1);
+            if (!r.ok || !r.data) return null;
+            const items = r.data.items || [];
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].listingUid === uid || items[i].uid === uid) {
+                    const pi = items[i].priceInfo || {};
+                    return {
+                        itemUid: items[i].uid,
+                        unitPrice: typeof pi.unitPrice === "number" ? pi.unitPrice : 0
+                    };
+                }
+            }
+            return null;
+        } catch (e) {
+            if (e && e.fatal) throw e;
+            return null;
+        }
+    }
+
+    async function deleteCartItem(itemUid) {
+        try {
+            await fetchWithTimeout("/i/cart/items/" + itemUid, {
+                method: "DELETE",
+                headers: apiHeaders({ "Accept": "application/json" }),
+                credentials: "same-origin"
+            });
+            return true;
+        } catch (e) {
+            return false;
+        }
+    }
+
     async function reconcileCart() {
         if (!runtime.carted || !runtime.carted.length) return;
         let r = null;
@@ -2329,6 +2417,7 @@
                 return;
             }
             if (await addToCart(item)) { markCarted(item); return; }
+            if (store.paid && store.paid[item.uid]) return;   // a paid line was pulled back out
             if (runtime.cartFull) { noteCartFull(); return; }
             runtime.stats.failed++; runtime.failStreak = (runtime.failStreak || 0) + 1; store.failed[item.uid] = "cart";
             return;
@@ -2406,6 +2495,8 @@
             }
             if (carted) {
                 markCarted(item);
+            } else if (store.paid && store.paid[item.uid]) {
+                return;                            // a paid line was pulled back out
             } else {
                 runtime.stats.failed++;
                 runtime.failStreak = (runtime.failStreak || 0) + 1;
@@ -3269,7 +3360,7 @@
             cursor: "move", userSelect: "none", touchAction: "none"
         });
         const title = document.createElement("strong");
-        title.textContent = t("name") + " v3.8.2";
+        title.textContent = t("name") + " v3.8.3";
         title.id = "fab-bfg-title";
         title.style.cssText = "font-size:13px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap";
         const headRight = document.createElement("span");
@@ -3518,9 +3609,11 @@
         const clearCartLabel = document.createElement("span");
         clearCartLabel.textContent = t("btnClearCart");
         btnClearCart.appendChild(clearCartLabel);
-        btnClearCart.title = t("clearCartAsk");
+        btnClearCart.title = t("btnClearCart");
         btnClearCart.onclick = function () {
-            if (!window.confirm(t("clearCartAsk"))) return;
+            // No prompt: the run is not in flight (the row only shows when it is
+            // idle), and the confirm box only added a click between the person
+            // and the one thing this button does.
             postClearCart().then(function (ok) {
                 if (!ok) { toast(t("clearCartFailed"), "error", 6000); return; }
                 runtime.carted = [];
@@ -3529,6 +3622,10 @@
                 saveCartPending();
                 render();
                 toast(t("clearCartDone"), "success", 4000);
+                // The site keeps its own cart count in memory, so the page is
+                // reloaded once the notice is visible: the badge, the cart page
+                // and the pending list then all start from an empty cart.
+                setTimeout(function () { window.location.reload(); }, 700);
             });
         };
         btnCart.onclick = function () {
