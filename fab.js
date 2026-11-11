@@ -1,10 +1,12 @@
 // ==UserScript==
 // @name        FAB Free Asset Getter
 // @namespace   https://greasyfork.org/en/users/313682-没拖鞋
-// @version     3.7.9
+// @version     3.8.0
 // @description Bulk-import free FAB assets (whole free catalogue or one seller) into your library through the FAB API: streaming scan-and-import in adjustable batches, optional ownership check, resumable cursor. Fork of the original by subtixx.
 // @author      noslipper
 // @homepageURL https://greasyfork.org/zh-CN/scripts/534044-fab-free-asset-getter
+// @downloadURL https://update.greasyfork.org/scripts/534044/FAB%20Free%20Asset%20Getter.user.js
+// @updateURL   https://update.greasyfork.org/scripts/534044/FAB%20Free%20Asset%20Getter.meta.js
 // @supportURL  https://github.com/noslipper/FAB-Free-Asset-Getter-Latest/issues
 // @match       https://www.fab.com/*
 // @grant       none
@@ -65,23 +67,31 @@
         batchMin: 1,
         batchMax: 5000,
 
-        concurrency: 12,          // parallel add workers
-        maxConcurrency: 16,
-        minConcurrency: 4,
-        indexConcurrency: 8,      // parallel ownership-state chunks
+        concurrency: 10,          // parallel add workers
+        maxConcurrency: 12,
+        minConcurrency: 3,
+        indexConcurrency: 6,      // parallel ownership-state chunks
         preferProfessional: true,  // claim the professional tier when an asset offers one
-        maxPages: 420,            // safety stop for one run
-        retries: 2,
-        waveDelay: 30,            // ms of rest between two assets on the same worker
-        waveJitter: 90,           // extra random spread so the burst stays polite
-        cooldownEvery: 1000,      // every N imported assets take a longer break
-        cooldownMs: 2500,
+        // 3000 pages x 24 listings covers the whole free catalogue (~47k).
+        // The page counter persists, so a rerun continues where it stopped.
+        maxPages: 3000,           // safety stop for one run
+        retries: 3,
+        waveDelay: 45,            // ms of rest between two assets on the same worker
+        waveJitter: 120,          // extra random spread so the burst stays polite
+        cooldownEvery: 800,       // every N imported assets take a longer break
+        cooldownMs: 3500,
 
         // Ownership check: "auto" detects whether the account hides assets
         // already in the library (Fab's "hide library items" preference).
         // When it does, search only returns unowned listings, so the extra
         // per-batch check is skipped. "on"/"off" force the behaviour.
-        ownedCheck: "auto"
+        ownedCheck: "auto",
+
+        // A bundle answers acquired=true the moment the account owns any single
+        // listing inside it, so that flag alone cannot mean "you already own
+        // this bundle". "auto" only trusts bundles that carry a real
+        // entitlement; "on" trusts the flag blindly; "off" never skips one.
+        bundleOwnedCheck: "auto"
     };
 
     const PANEL_ID = "fab-bfg-panel";
@@ -1632,8 +1642,12 @@
     // After the run: open the cart, keep the panel honest about what it is
     // waiting for, and watch the cart until the order goes through.
     async function checkoutCarted() {
+        // Anything already in the library is not ours to check out again: this
+        // is what produced a cart full of owned items and an order that added
+        // nothing.
+        runtime.carted = (runtime.carted || []).filter(function (u) { return !store.done[u]; });
         const n = runtime.carted.length;
-        if (!n) return;
+        if (!n) { saveCartPending(); return; }
         // One last look at the cart: a request that reported success can still
         // have been dropped, and a half-filled cart would be a silent loss.
         const cartNow = await requestJson("/i/cart", 1);
@@ -1677,14 +1691,22 @@
                 // The cart is empty but nothing is actually owned: do not
                 // celebrate a purchase that did not happen.
                 runtime.carted.length = 0;
+                uids.forEach(function (u) { if (store.carted) delete store.carted[u]; });
                 saveCartPending();
+                saveStore();
                 setStatus(t("cartMiss"));
                 toast(t("cartMiss"), "warning", 6000);
                 render();
                 return;
             }
             runtime.stats.added += got;
-            for (let i = 0; i < uids.length; i++) { store.done[uids[i]] = 1; markSavedOnPage(uids[i]); }
+            for (let i = 0; i < uids.length; i++) {
+                store.done[uids[i]] = 1;
+                markSavedOnPage(uids[i]);
+                // The library owns them now, so they must never come back as
+                // pending cart items on the next run.
+                if (store.carted) delete store.carted[uids[i]];
+            }
             runtime.carted.length = 0;
             saveCartPending();
             setStatus(t("cartDone", got));
@@ -1808,7 +1830,10 @@
         // cycling back to the same slice, so this is a real ceiling, not a throttle.
         if (fresh === 0) {
             runtime.dupStreak = (runtime.dupStreak || 0) + 1;
-            if (runtime.dupStreak >= 12) {
+            // A big account can walk through slices that are entirely owned, or
+            // a page the server repeats while throttling; 12 pages stopped such a
+            // scan far too early, 25 is a ceiling worth trusting.
+            if (runtime.dupStreak >= 25) {
                 log(t("logDupPages", runtime.dupStreak));
                 runtime.endReached = true;
             }
@@ -1865,15 +1890,22 @@
         runtime.checkJobs = runtime.checkJobs || [];
         runtime.checkJobs.push((async function () {
             try {
-                const owned = await fetchOwned(list.map(function (x) { return x.uid; }));
+                const res = await fetchOwned(list.map(function (x) { return x.uid; }));
+                const owned = res.owned;
+                const entitled = res.entitled;
                 let pushed = 0;
                 list.forEach(function (it) {
                     // A bundle reports acquired=true as soon as the account owns
                     // any single listing inside it, so that flag cannot be read as
-                    // "you already own this bundle". Bundles are free and the cart
-                    // add is idempotent, so they always go through.
+                    // "you already own this bundle": only a real entitlement
+                    // counts, otherwise the bundle still needs the cart.
                     const bundle = /bundle/i.test(it.listingType || "");
-                    if (!bundle && owned.has(it.uid)) { runtime.stats.skipped++; return; }
+                    let mine;
+                    if (!bundle) mine = owned.has(it.uid);
+                    else if (CONFIG.bundleOwnedCheck === "off") mine = false;
+                    else if (CONFIG.bundleOwnedCheck === "on") mine = owned.has(it.uid);
+                    else mine = entitled.has(it.uid);
+                    if (mine) { runtime.stats.skipped++; return; }
                     if (runtime.queue.some(function (x) { return x.uid === it.uid; })) return;
                     runtime.queue.push(it);
                     pushed++;
@@ -1890,6 +1922,8 @@
 
     async function fetchOwned(uids) {
         const owned = new Set();
+        // acquired alone is not ownership for a bundle; an entitlement id is.
+        const entitled = new Set();
         const chunks = [];
         for (let i = 0; i < uids.length; i += CONFIG.stateChunkSize) chunks.push(uids.slice(i, i + CONFIG.stateChunkSize));
 
@@ -1911,7 +1945,10 @@
                 }
                 if (rows) {
                     for (let i = 0; i < rows.length; i++) {
-                        if (rows[i] && rows[i].acquired === true && rows[i].uid) owned.add(rows[i].uid);
+                        const row = rows[i];
+                        if (!row || row.acquired !== true || !row.uid) continue;
+                        owned.add(row.uid);
+                        if (row.entitlementId) entitled.add(row.uid);
                     }
                 } else {
                     log(t("logOwnedShort", chunk.length));
@@ -1920,7 +1957,7 @@
         }
         for (let i = 0; i < Math.min(CONFIG.indexConcurrency, chunks.length); i++) workers.push(worker());
         await Promise.all(workers);
-        return owned;
+        return { owned: owned, entitled: entitled };
     }
 
     // Who is signed in? The panel shows it next to the phase, because every
@@ -1955,8 +1992,8 @@
                 return true;
             }
             const ids = sessRows.slice(0, CONFIG.stateChunkSize).map(function (x) { return x.uid; });
-            const owned = await fetchOwned(ids);
-            runtime.hiddenLibrary = owned.size === 0;
+            const res = await fetchOwned(ids);
+            runtime.hiddenLibrary = res.owned.size === 0;
             log(runtime.hiddenLibrary
                 ? t("logHiddenSearch")
                 : t("logKeepCheck"));
@@ -1999,6 +2036,9 @@
     async function addOne(item) {
         if (runtime.aborted) return;
         if (store.done[item.uid]) { runtime.stats.skipped++; return; }
+        // Parked in the cart by an earlier run: a second add leaves a duplicate
+        // row, and the empty order that follows then looks like a failure.
+        if (store.carted && store.carted[item.uid]) { runtime.stats.skipped++; return; }
 
         // A bundle can never be claimed through add-to-library: that endpoint
         // always answers 400 "Listing is a bundle.". Going straight to the cart
@@ -2232,7 +2272,14 @@
         runtime.queue = [];
         const pending = loadCartPending();
         runtime.carted = pending.slice(0);
-        Object.keys(store.carted || {}).forEach(function (u) { if (runtime.carted.indexOf(u) < 0) runtime.carted.push(u); });
+        // A uid that already reached the library must not come back as a
+        // pending cart item: that is what made a later order try to buy assets
+        // the account already owns.
+        Object.keys(store.carted || {}).forEach(function (u) {
+            if (store.done[u]) return;
+            if (runtime.carted.indexOf(u) < 0) runtime.carted.push(u);
+        });
+        runtime.carted = runtime.carted.filter(function (u) { return !store.done[u]; });
         setStatus(t("statusScanning"));
         render();
 
@@ -2855,6 +2902,29 @@
         return /^\/(cart|payment)(\/|$)/i.test(p) || /\/payment\/web\//i.test(p);
     }
 
+    // Exactly one panel per page: after ours is in the DOM, any other element
+    // carrying the same id (an older copy of this script, or a copy injected
+    // before the page finished loading) is dropped.
+    function keepSinglePanel(panel) {
+        function prune() {
+            const all = document.querySelectorAll('[id="' + PANEL_ID + '"]');
+            if (all.length < 2) return;
+            const keep = all[0];
+            for (let i = all.length - 1; i >= 1; i--) {
+                const el = all[i];
+                if (el && el.parentNode) el.parentNode.removeChild(el);
+                if (el === panel) panel.__dropped = true;
+            }
+            if (keep === panel) return;
+        }
+        prune();
+        // A second copy can arrive a moment later (DOMContentLoaded, SPA route
+        // change), so check again shortly after.
+        setTimeout(prune, 250);
+        setTimeout(prune, 1200);
+        setTimeout(prune, 4000);
+    }
+
     function buildUI() {
         if (document.getElementById(PANEL_ID)) return;
         if (isCheckoutPage()) return;
@@ -2873,7 +2943,7 @@
         const head = document.createElement("div");
         Object.assign(head.style, { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" });
         const title = document.createElement("strong");
-        title.textContent = t("name") + " v3.7.9";
+        title.textContent = t("name") + " v3.8.0";
         title.style.fontSize = "13px";
         const headRight = document.createElement("span");
         headRight.style.cssText = "display:inline-flex;align-items:center;gap:6px;min-width:0";
@@ -3122,6 +3192,10 @@
             btnStart: btnStart, btnPause: btnPause, btnImport: btnImport, btnStop: btnStop
         };
         document.body.appendChild(panel);
+        // Two copies of the script can be injected into the same page (the
+        // installed userscript plus a manual paste). Both check for the panel
+        // before creating one, so they can still race: keep exactly one.
+        keepSinglePanel(panel);
         runtime.carted = loadCartPending();
         render();
         loadMe();

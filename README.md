@@ -50,6 +50,12 @@
 
 ## 版本历史
 
+- **v3.8.0** — 主要变化：
+  - **合集归属判断更精确**：合集只要拥有其中任意一条子资产，状态接口就会返回「已拥有」，仅凭这一项会漏掉尚未拥有的合集。现在只有拿到真实的资产授权才判定为已拥有，其余合集照常加入购物车；判定方式可在 `CONFIG.bundleOwnedCheck`（`auto` / `on` / `off`）中切换。
+  - **待结账清单不再重复**：已入库的资产不会再于下一轮恢复为待结账项；加购前先比对本地待结账记录，网络抖动也不会把同一条资产重复入车。
+  - **结账后同步清理记录**：结账成功，或购物车已空却未入账时，都会一并清理本地待结账记录，下一轮可重新处理，不会卡在旧清单上。
+  - **扫描上限与限速**：单次扫描上限放宽至 3000 页（约 7.2 万条，可覆盖全部免费目录），页码计数持久化，中断后从断点续跑；重复页判定阈值由 12 页放宽至 25 页，避免大账号扫描提前收尾；重试次数与请求间隔同步加大，降低触发站点限流的概率。
+  - **面板只保留一个**：同一页面被注入多份脚本时只保留一个面板，不再出现两个卡片。
 - **v3.7.9** — 主要变化：
   - **结账页不显示面板**：购物车页和 Epic 付款页不再挂面板，也不在那两页扫描，付款界面保持原样。
   - **扫描条件不撑爆面板**：条件摘要过长时截断显示，不会再出现整条付款链接铺满面板的情况。
@@ -137,6 +143,12 @@ A Tampermonkey script that collects all free assets from the FAB marketplace int
 
 ## Version History
 
+- **v3.8.0** — what changed:
+  - **Sharper bundle ownership test**: a bundle reports itself as owned as soon as the account owns any single listing inside it, and that flag alone skipped bundles that were never acquired. Only a real entitlement now counts as ownership; every other bundle still goes to the cart. The behaviour is switchable through `CONFIG.bundleOwnedCheck` (`auto` / `on` / `off`).
+  - **No duplicate pending cart items**: assets already in the library are never restored as pending cart items on the next run, and the local pending record is checked before adding, so a network hiccup cannot put the same asset into the cart twice.
+  - **Records are cleared after checkout**: a completed order, or an emptied cart that acquired nothing, clears the matching local pending records, so the next run can retry them instead of being stuck on an old list.
+  - **Scan ceiling and throttling**: one run may now walk up to 3000 pages (about 72k listings, enough for the whole free catalogue), the page counter persists so an interrupted run resumes where it stopped, and the repeated-page threshold rises from 12 to 25 pages so a large account no longer ends its scan early; retries and request spacing were widened to lower the chance of tripping the site throttle.
+  - **One panel per page**: when several copies of the script are injected into one page, only a single panel survives instead of two overlapping cards.
 - **v3.7.9** — what changed:
   - **No panel on the checkout pages**: the cart page and the Epic payment page no longer host the panel and are not scanned, so the payment screen stays as the site renders it.
   - **Scope summary no longer floods the panel**: a long filter summary is truncated instead of printing a whole payment URL across the panel.
