@@ -17,6 +17,8 @@
 - 界面支持 14 种语言，自动跟随站点语言
 - 扫到末尾、队列清空后，全屏播放一段完成特效
 - 合集等无法直接入库的免费资产改为自动加入购物车，扫完后一次性结账；结账完成才播放完成特效
+- 面板可拖拽、可折叠：拖动标题栏移动位置，双击标题折叠成迷你条，折叠后按最近一侧停靠
+- 「结账(n)」旁提供「清空购物车」，二次确认后整包清空
 - 两个快捷入口：**Megascan** 带 Quixel 图标，直达 Quixel Megascans 的免费资产（最新发布排序）；**免费资产** 直达全站免费资产（最新发布排序）
 
 ## 安装方法
@@ -50,6 +52,12 @@
 
 ## 版本历史
 
+- **v3.8.2** — 主要变化：
+  - **已拥有的合集不再进购物车**：合集是否整包已拥有改由 `/i/bundles/<uid>` 的 `ownsBundledListing` 判定。此前只看授权 id，已拥有的合集仍会被加进购物车，结账时整单报错；现在在领取阶段即跳过并计入「跳过」。
+  - **面板新增「清空购物车」**：与「结账(n)」同行显示，二次确认后调用 `/i/cart/clear` 整包清空，同时清除本地待结账清单与断点记录；请求补齐 JSON 内容类型，不再因媒体类型不符被接口拒绝。
+  - **购物车容量上限**：`CONFIG.cartMax` 默认 80。达到上限后停止加购并暂停本轮，避免购物车条目过多导致购物车页与 `/i/cart` 无法加载。
+  - **面板可拖拽与折叠**：拖动标题栏移动面板，松手后按最近一侧停靠并记住位置；折叠为 260 px 迷你条、展开为 350 px，折叠按钮坐标保持不变，可反复开合，双击标题同样切换折叠。
+  - **重试区分传输失败与服务端拒绝**：传输失败额外重试两次并延长退避，且不计入永久失败记录，下一轮会重新尝试；重试耗尽的 5xx 记录真实状态码，不再统一标为 `network`。领取接口对个别免费条目持续返回 5xx 时，改为把该免费许可放入购物车，避免既没入库也没进车。
 - **v3.8.1** — 主要变化：
   - **每轮先回读最新页**：新上架的资产只会出现在按发布时间排序的索引头部，只从断点续跑永远看不到。现在每轮先按最新发布读头部 12 页（约 288 条），再跳回上次的断点继续，续跑不再漏掉刚上架的免费资产；头部页数由 `CONFIG.headPages` 控制。
   - **待结账清单与购物车对账**：面板显示「结账(n)」前、点击结账按钮前，都会回读 `/i/cart` 核对本地记录，购物车里已经不存在的条目自动剔除，不会再出现「按钮上写着有货、点进去是空车」。
@@ -116,6 +124,8 @@ A Tampermonkey script that collects all free assets from the FAB marketplace int
 - The interface speaks 14 languages and follows the site's own language setting
 - A full-screen finish effect plays once the last page is scanned and the queue is empty
 - Bundles and other free types that the claim endpoint refuses are put in the cart automatically; one checkout at the end collects them, and the finish effect waits for that order
+- The panel can be dragged and collapsed: drag the title bar to move it, double-click the title to fold it into a mini bar, and it docks to the nearest side on release
+- A cart clear button sits next to Checkout(n) and empties the cart after one confirmation
 - Two shortcuts: **Megascan**, with the Quixel mark, opens the Quixel Megascans free listings sorted by newest; **Free assets** opens the whole free catalogue in the same order
 
 ## Installation
@@ -149,6 +159,12 @@ A Tampermonkey script that collects all free assets from the FAB marketplace int
 
 ## Version History
 
+- **v3.8.2** — what changed:
+  - **Bundles you already own no longer reach the cart**: whole-bundle ownership is now read from `ownsBundledListing` on `/i/bundles/<uid>`. The previous check only looked for a licence id, so owned bundles were still parked in the cart and made the checkout reject the whole order; they are now skipped during the claim step and counted as skipped.
+  - **A cart clear button on the panel**: it sits on the same row as Checkout(n), asks once, then calls `/i/cart/clear` to empty the cart and drops the local pending list and the saved break point with it. The request now carries a JSON content type, so the endpoint no longer refuses it.
+  - **A cart capacity ceiling**: `CONFIG.cartMax` defaults to 80. Once the cart reaches it the script stops adding further items and pauses the run, so a long cart can no longer make the cart page and `/i/cart` stop loading.
+  - **The panel can be dragged and collapsed**: the title bar moves the panel, and on release it docks to the nearest side and remembers that position. Collapsed it becomes a 260 px mini bar, expanded 350 px, with the collapse button keeping the same coordinates so it can be toggled repeatedly; double-clicking the title does the same.
+  - **Transport failures are retried apart from server refusals**: a lost connection gets two extra attempts with a longer backoff and is not stored as a permanent failure, so the next run tries that asset again; a 5xx that survives every retry keeps its real status instead of being reported as `network`. When the claim endpoint keeps answering 5xx for one free item, its free licence is put in the cart instead, so the asset no longer ends up neither claimed nor parked.
 - **v3.8.1** — what changed:
   - **The head of the index is re-read every run**: newly published assets only appear at the top of the newest-first index, and a run that only resumes the saved cursor never sees them. Each run now walks the newest 12 pages (about 288 listings) first and then jumps back to the saved break point, so newly listed free assets are no longer missed. The window size is `CONFIG.headPages`.
   - **The pending list is reconciled with the real cart**: before the panel advertises Checkout(n), and before the checkout button opens the cart, the local list is checked against `/i/cart` and entries the cart no longer holds are dropped, so a button that claims items can never lead to an empty cart.

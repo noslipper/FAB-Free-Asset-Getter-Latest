@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        FAB Free Asset Getter
 // @namespace   https://greasyfork.org/en/users/313682-没拖鞋
-// @version     3.8.1
+// @version     3.8.2
 // @description Bulk-import free FAB assets (whole free catalogue or one seller) into your library through the FAB API: streaming scan-and-import in adjustable batches, optional ownership check, resumable cursor. Fork of the original by subtixx.
 // @author      noslipper
 // @homepageURL https://greasyfork.org/zh-CN/scripts/534044-fab-free-asset-getter
@@ -79,6 +79,10 @@
         // only resumes the saved cursor never sees them. Every run re-reads this
         // many pages from the head first, then jumps back to the saved cursor.
         headPages: 12,
+        // The cart is a server-side object that the site has to render whole. A
+        // very long cart has already made /i/cart hang and /cart answer 500, so
+        // adding stops at this length and asks for a checkout instead.
+        cartMax: 80,
         retries: 3,
         waveDelay: 45,            // ms of rest between two assets on the same worker
         waveJitter: 120,          // extra random spread so the burst stays polite
@@ -114,6 +118,14 @@
         "en": {
             logCheckoutNoScan: "Checkout page: nothing to scan here, start from a search page",
             cartEmptyNow: "Cart is empty — stale checkout records cleared",
+            btnClearCart: "Clear cart",
+            clearCartAsk: "Remove every item from the cart on fab.com? Items will have to be re-added.",
+            clearCartDone: "Cart emptied.",
+            clearCartFailed: "Could not clear the cart.",
+            logCartFull: "The cart already holds {0} items — check out before adding more.",
+            miniStats: "Scanned {0} · Added {1} · Skipped {2} · Failed {3} · {4}",
+            tipCollapse: "Collapse the panel",
+            tipExpand: "Expand the panel",
             logCartReconciled: "Cart check: {0} pending records are no longer in the cart, dropped",
             cartMiss: "Cart is empty but nothing new reached your library",
             cartBtn: "Checkout ({0})",
@@ -187,6 +199,14 @@
         "zh-CN": {
             logCheckoutNoScan: "结账页不扫描，请回到搜索页开始",
             cartEmptyNow: "购物车是空的，已清除失效的待结账记录",
+            btnClearCart: "清空购物车",
+            clearCartAsk: "确定清空 fab.com 购物车里的全部条目吗？清空后需要重新加购。",
+            clearCartDone: "购物车已清空。",
+            clearCartFailed: "清空购物车失败。",
+            logCartFull: "购物车已有 {0} 条待结账，请先结账再继续。",
+            miniStats: "已扫描 {0} · 新增 {1} · 跳过 {2} · 失败 {3} · 用时 {4}",
+            tipCollapse: "折叠面板",
+            tipExpand: "展开面板",
             logCartReconciled: "购物车核对：{0} 条待结账记录已不在购物车，已清除",
             cartMiss: "购物车已空，但库里没有新增资产",
             cartBtn: "结账（{0}）",
@@ -260,6 +280,14 @@
         "zh-TW": {
             logCheckoutNoScan: "結帳頁不掃描，請回到搜尋頁開始",
             cartEmptyNow: "購物車是空的，已清除失效的待結帳紀錄",
+            btnClearCart: "清空購物車",
+            clearCartAsk: "確定清空 fab.com 購物車中的全部項目嗎？清空後需重新加入。",
+            clearCartDone: "購物車已清空。",
+            clearCartFailed: "清空購物車失敗。",
+            logCartFull: "購物車已有 {0} 條待結帳，請先結帳再繼續。",
+            miniStats: "已掃描 {0} · 新增 {1} · 跳過 {2} · 失敗 {3} · 已用 {4}",
+            tipCollapse: "收合面板",
+            tipExpand: "展開面板",
             logCartReconciled: "購物車核對：{0} 筆待結帳紀錄已不在購物車，已清除",
             cartMiss: "購物車已空，但庫中沒有新增資產",
             cartBtn: "結帳（{0}）",
@@ -333,6 +361,14 @@
         "ja": {
             logCheckoutNoScan: "決済ページではスキャンしません。検索ページから開始してください",
             cartEmptyNow: "カートは空です — 無効な決済記録を削除しました",
+            btnClearCart: "カートを空にする",
+            clearCartAsk: "fab.com のカートをすべて空にしますか？再度追加が必要になります。",
+            clearCartDone: "カートを空にしました。",
+            clearCartFailed: "カートを空にできませんでした。",
+            logCartFull: "カートに {0} 件あります。先に購入手続きをしてください。",
+            miniStats: "走査 {0} · 追加 {1} · スキップ {2} · 失敗 {3} · {4}",
+            tipCollapse: "パネルを折りたたむ",
+            tipExpand: "パネルを展開",
             logCartReconciled: "カート確認：{0} 件の保留記録がカートにないため削除しました",
             cartMiss: "カートは空ですが、ライブラリに追加されたものはありません",
             cartBtn: "決済（{0}）",
@@ -406,6 +442,14 @@
         "ko": {
             logCheckoutNoScan: "결제 페이지에서는 스캔하지 않습니다. 검색 페이지에서 시작하세요",
             cartEmptyNow: "장바구니가 비어 있습니다 — 만료된 결제 기록을 정리했습니다",
+            btnClearCart: "장바구니 비우기",
+            clearCartAsk: "fab.com 장바구니를 모두 비우시겠습니까? 다시 추가해야 합니다.",
+            clearCartDone: "장바구니를 비웠습니다.",
+            clearCartFailed: "장바구니를 비우지 못했습니다.",
+            logCartFull: "장바구니에 {0}개가 있습니다. 먼저 결제를 완료하세요.",
+            miniStats: "스캔 {0} · 추가 {1} · 건너뜀 {2} · 실패 {3} · {4}",
+            tipCollapse: "패널 접기",
+            tipExpand: "패널 펼치기",
             logCartReconciled: "장바구니 확인: {0}건의 대기 기록이 장바구니에 없어 삭제했습니다",
             cartMiss: "장바구니는 비었지만 라이브러리에 추가된 항목이 없습니다",
             cartBtn: "결제 ({0})",
@@ -479,6 +523,14 @@
         "de": {
             logCheckoutNoScan: "Bezahlseite wird nicht gescannt, bitte auf einer Suchseite starten",
             cartEmptyNow: "Warenkorb ist leer — veraltete Checkout-Einträge entfernt",
+            btnClearCart: "Warenkorb leeren",
+            clearCartAsk: "Alle Artikel im Warenkorb von fab.com entfernen? Sie müssen erneut hinzugefügt werden.",
+            clearCartDone: "Warenkorb geleert.",
+            clearCartFailed: "Warenkorb konnte nicht geleert werden.",
+            logCartFull: "Im Warenkorb liegen bereits {0} Artikel. Bitte zuerst zur Kasse gehen.",
+            miniStats: "Gescannt {0} · Hinzugefügt {1} · Übersprungen {2} · Fehler {3} · {4}",
+            tipCollapse: "Panel einklappen",
+            tipExpand: "Panel ausklappen",
             logCartReconciled: "Warenkorb-Prüfung: {0} offene Einträge sind nicht mehr im Warenkorb, entfernt",
             cartMiss: "Warenkorb leer, aber nichts Neues in der Bibliothek",
             cartBtn: "Bezahlen ({0})",
@@ -552,6 +604,14 @@
         "fr": {
             logCheckoutNoScan: "La page de paiement n'est pas analysée, lancez depuis une page de recherche",
             cartEmptyNow: "Panier vide — les entrées de paiement obsolètes ont été supprimées",
+            btnClearCart: "Vider le panier",
+            clearCartAsk: "Retirer tous les articles du panier fab.com ? Ils devront être ajoutés à nouveau.",
+            clearCartDone: "Panier vidé.",
+            clearCartFailed: "Impossible de vider le panier.",
+            logCartFull: "Le panier contient déjà {0} articles. Passez d'abord à la caisse.",
+            miniStats: "Analysés {0} · Ajoutés {1} · Ignorés {2} · Échecs {3} · {4}",
+            tipCollapse: "Replier le panneau",
+            tipExpand: "Déplier le panneau",
             logCartReconciled: "Vérification du panier : {0} entrées en attente ne sont plus dans le panier, supprimées",
             cartMiss: "Panier vide, mais rien de nouveau dans la bibliothèque",
             cartBtn: "Commander ({0})",
@@ -625,6 +685,14 @@
         "es-ES": {
             logCheckoutNoScan: "La página de pago no se escanea, inicia desde una página de búsqueda",
             cartEmptyNow: "El carrito está vacío — se borraron los registros de pago obsoletos",
+            btnClearCart: "Vaciar carrito",
+            clearCartAsk: "¿Vaciar todos los artículos del carrito de fab.com? Habrá que volver a añadirlos.",
+            clearCartDone: "Carrito vaciado.",
+            clearCartFailed: "No se pudo vaciar el carrito.",
+            logCartFull: "El carrito ya tiene {0} artículos. Finaliza la compra antes de continuar.",
+            miniStats: "Analizados {0} · Añadidos {1} · Omitidos {2} · Fallos {3} · {4}",
+            tipCollapse: "Contraer el panel",
+            tipExpand: "Expandir el panel",
             logCartReconciled: "Comprobación del carrito: {0} registros pendientes ya no están en el carrito, borrados",
             cartMiss: "Carrito vacío, pero nada nuevo en la biblioteca",
             cartBtn: "Pagar ({0})",
@@ -698,6 +766,14 @@
         "es-LA": {
             logCheckoutNoScan: "La página de pago no se escanea, inicia desde una página de búsqueda",
             cartEmptyNow: "El carrito está vacío — se eliminaron los registros de pago obsoletos",
+            btnClearCart: "Vaciar carrito",
+            clearCartAsk: "¿Vaciar todos los artículos del carrito de fab.com? Habrá que volver a agregarlos.",
+            clearCartDone: "Carrito vaciado.",
+            clearCartFailed: "No se pudo vaciar el carrito.",
+            logCartFull: "El carrito ya tiene {0} artículos. Finaliza la compra antes de continuar.",
+            miniStats: "Analizados {0} · Agregados {1} · Omitidos {2} · Fallos {3} · {4}",
+            tipCollapse: "Contraer el panel",
+            tipExpand: "Expandir el panel",
             logCartReconciled: "Revisión del carrito: {0} registros pendientes ya no están en el carrito, eliminados",
             cartMiss: "Carrito vacío, pero nada nuevo en la biblioteca",
             cartBtn: "Pagar ({0})",
@@ -771,6 +847,14 @@
         "it": {
             logCheckoutNoScan: "La pagina di pagamento non viene analizzata, avvia da una pagina di ricerca",
             cartEmptyNow: "Carrello vuoto — voci di checkout obsolete rimosse",
+            btnClearCart: "Svuota carrello",
+            clearCartAsk: "Rimuovere tutti gli articoli dal carrello di fab.com? Andranno aggiunti di nuovo.",
+            clearCartDone: "Carrello svuotato.",
+            clearCartFailed: "Impossibile svuotare il carrello.",
+            logCartFull: "Il carrello contiene già {0} articoli. Concludi prima l'acquisto.",
+            miniStats: "Scansionati {0} · Aggiunti {1} · Saltati {2} · Errori {3} · {4}",
+            tipCollapse: "Comprimi pannello",
+            tipExpand: "Espandi pannello",
             logCartReconciled: "Controllo carrello: {0} voci in sospeso non sono più nel carrello, rimosse",
             cartMiss: "Carrello vuoto, ma nulla di nuovo nella libreria",
             cartBtn: "Paga ({0})",
@@ -844,6 +928,14 @@
         "pl": {
             logCheckoutNoScan: "Strona płatności nie jest skanowana, rozpocznij na stronie wyszukiwania",
             cartEmptyNow: "Koszyk jest pusty — usunięto nieaktualne wpisy zamówienia",
+            btnClearCart: "Wyczyść koszyk",
+            clearCartAsk: "Usunąć wszystkie pozycje z koszyka fab.com? Trzeba będzie dodać je ponownie.",
+            clearCartDone: "Koszyk wyczyszczony.",
+            clearCartFailed: "Nie udało się wyczyścić koszyka.",
+            logCartFull: "W koszyku jest już {0} pozycji. Najpierw dokończ zakup.",
+            miniStats: "Zeskanowano {0} · Dodano {1} · Pominięto {2} · Błędy {3} · {4}",
+            tipCollapse: "Zwiń panel",
+            tipExpand: "Rozwiń panel",
             logCartReconciled: "Sprawdzenie koszyka: {0} oczekujących wpisów nie ma już w koszyku, usunięto",
             cartMiss: "Koszyk pusty, ale w bibliotece nic nie przybyło",
             cartBtn: "Zapłać ({0})",
@@ -917,6 +1009,14 @@
         "pt-BR": {
             logCheckoutNoScan: "A página de pagamento não é analisada, comece em uma página de busca",
             cartEmptyNow: "O carrinho está vazio — registros de checkout obsoletos foram removidos",
+            btnClearCart: "Esvaziar carrinho",
+            clearCartAsk: "Remover todos os itens do carrinho do fab.com? Será preciso adicioná-los de novo.",
+            clearCartDone: "Carrinho esvaziado.",
+            clearCartFailed: "Não foi possível esvaziar o carrinho.",
+            logCartFull: "O carrinho já tem {0} itens. Finalize a compra antes de continuar.",
+            miniStats: "Analisados {0} · Adicionados {1} · Ignorados {2} · Falhas {3} · {4}",
+            tipCollapse: "Recolher o painel",
+            tipExpand: "Expandir o painel",
             logCartReconciled: "Verificação do carrinho: {0} registros pendentes não estão mais no carrinho, removidos",
             cartMiss: "Carrinho vazio, mas nada novo na biblioteca",
             cartBtn: "Finalizar ({0})",
@@ -990,6 +1090,14 @@
         "ru": {
             logCheckoutNoScan: "Страница оплаты не сканируется, начните со страницы поиска",
             cartEmptyNow: "Корзина пуста — устаревшие записи оформления удалены",
+            btnClearCart: "Очистить корзину",
+            clearCartAsk: "Удалить все товары из корзины fab.com? Их придётся добавить заново.",
+            clearCartDone: "Корзина очищена.",
+            clearCartFailed: "Не удалось очистить корзину.",
+            logCartFull: "В корзине уже {0} позиций. Сначала оформление заказа.",
+            miniStats: "Просканировано {0} · Добавлено {1} · Пропущено {2} · Ошибок {3} · {4}",
+            tipCollapse: "Свернуть панель",
+            tipExpand: "Развернуть панель",
             logCartReconciled: "Проверка корзины: {0} записей ожидания больше нет в корзине, удалены",
             cartMiss: "Корзина пуста, но в библиотеке ничего не появилось",
             cartBtn: "Оплатить ({0})",
@@ -1063,6 +1171,14 @@
         "tr": {
             logCheckoutNoScan: "Ödeme sayfası taranmaz, arama sayfasından başlayın",
             cartEmptyNow: "Sepet boş — eski ödeme kayıtları temizlendi",
+            btnClearCart: "Sepeti temizle",
+            clearCartAsk: "fab.com sepetindeki tüm ürünler kaldırılsın mı? Yeniden eklemeniz gerekir.",
+            clearCartDone: "Sepet temizlendi.",
+            clearCartFailed: "Sepet temizlenemedi.",
+            logCartFull: "Sepette zaten {0} ürün var. Önce ödemeyi tamamlayın.",
+            miniStats: "Tarandı {0} · Eklendi {1} · Atlandı {2} · Hata {3} · {4}",
+            tipCollapse: "Paneli daralt",
+            tipExpand: "Paneli genişlet",
             logCartReconciled: "Sepet kontrolü: {0} bekleyen kayıt artık sepette değil, silindi",
             cartMiss: "Sepet boş ama kütüphaneye yeni bir şey eklenmedi",
             cartBtn: "Öde ({0})",
@@ -1136,6 +1252,14 @@
         "ar": {
             logCheckoutNoScan: "صفحة الدفع لا يتم فحصها، ابدأ من صفحة البحث",
             cartEmptyNow: "السلة فارغة — تم مسح سجلات الدفع القديمة",
+            btnClearCart: "إفراغ السلة",
+            clearCartAsk: "هل تريد إزالة كل العناصر من سلة fab.com؟ سيلزم إضافتها مرة أخرى.",
+            clearCartDone: "تم إفراغ السلة.",
+            clearCartFailed: "تعذّر إفراغ السلة.",
+            logCartFull: "تحتوي السلة على {0} عناصر. أكمل الشراء أولًا.",
+            miniStats: "تم الفحص {0} · أُضيف {1} · تم التخطي {2} · فشل {3} · {4}",
+            tipCollapse: "طيّ اللوحة",
+            tipExpand: "توسيع اللوحة",
             logCartReconciled: "فحص السلة: {0} سجلات معلّقة لم تعد في السلة، تم حذفها",
             cartMiss: "السلة فارغة لكن لم يصل شيء جديد إلى مكتبتك",
             cartBtn: "إتمام الشراء ({0})",
@@ -1633,6 +1757,23 @@
         return pick && pick.listingLicenseId ? pick.listingLicenseId : null;
     }
 
+    // POST /i/cart/clear is the only whole-cart call the site accepts: DELETE
+    // /i/cart answers 405, and a stuck cart cannot be enumerated item by item
+    // because GET /i/cart is the very request that stops responding.
+    async function postClearCart() {
+        try {
+            const r = await fetchWithTimeout("/i/cart/clear", {
+                method: "POST",
+                headers: apiHeaders({ "Accept": "application/json", "Content-Type": "application/json" }),
+                body: "{}",
+                credentials: "same-origin"
+            });
+            return r.status === 204 || r.ok;
+        } catch (e) {
+            return false;
+        }
+    }
+
     async function postCartItem(listingLicenseId) {
         for (let attempt = 0; attempt <= CONFIG.retries; attempt++) {
             if (runtime.aborted) return { ok: false, aborted: true };
@@ -1661,7 +1802,27 @@
     }
 
     // Park one listing in the cart; returns true when it landed there.
+    // A bundle reports "acquired" as soon as one child is owned, so the state
+    // list cannot answer "do I already own this whole bundle". The bundle detail
+    // does: ownsBundledListing is true only when every child is accounted for,
+    // and adding a bundle the account already owns only clutters the cart and
+    // makes the checkout reject the order.
+    async function bundleAlreadyOwned(uid) {
+        try {
+            const r = await requestJson("/i/bundles/" + uid, 1);
+            if (r.auth) throw { fatal: "auth" };
+            return !!(r.ok && r.data && r.data.ownsBundledListing === true);
+        } catch (e) {
+            if (e && e.fatal) throw e;
+            return false;
+        }
+    }
+
     async function addToCart(item) {
+        if (CONFIG.cartMax && runtime.carted.length >= CONFIG.cartMax) {
+            runtime.cartFull = true;
+            return false;
+        }
         try {
             if (!item.isBundle) item.isBundle = false;
             const licId = await resolveCartLicense({
@@ -1789,7 +1950,12 @@
     }
 
     async function postAddToLibrary(uid, offerId) {
-        for (let attempt = 0; attempt <= CONFIG.retries; attempt++) {
+        // A transport failure is not an answer: the claim may still go through on
+        // the next attempt, so it gets two extra tries on a slower ladder than a
+        // real HTTP refusal.
+        const attempts = CONFIG.retries + 2;
+        let lastHttp = null;
+        for (let attempt = 0; attempt <= attempts; attempt++) {
             if (runtime.aborted) return { ok: false, aborted: true };
             try {
                 const fd = new FormData();
@@ -1811,14 +1977,19 @@
                 }
                 if (r.status === 429 || r.status >= 500) {
                     noteThrottled(r.status);
+                    lastHttp = { status: r.status, body: txt.slice(0, 200) };
                     await sleep(1500 + attempt * 2500 + Math.random() * 800);
                     continue;
                 }
                 return { ok: false, status: r.status, body: txt.slice(0, 200) };
             } catch (e) {
-                await sleep(800 * (attempt + 1));
+                await sleep(1200 * (attempt + 1));
             }
         }
+        // Every attempt was a transport failure only then -1; a server answer
+        // that repeated is reported with its own status so it can be told apart
+        // from a lost connection.
+        if (lastHttp) return { ok: false, status: lastHttp.status, body: lastHttp.body };
         return { ok: false, status: -1, body: "network" };
     }
 
@@ -2118,8 +2289,20 @@
         return { none: true };
     }
 
+    // One notice per run: the cart is full, the rest of the queue would only
+    // pile up until the cart page stops rendering.
+    function noteCartFull() {
+        if (runtime.cartFullReported) return;
+        runtime.cartFullReported = true;
+        runtime.stats.skipped++;
+        toast(t("logCartFull", runtime.carted.length), "warning", 6000);
+        log(t("logCartFull", runtime.carted.length));
+        pause();
+    }
+
     // Park one item in the cart and record it in every place that tracks it.
     function markCarted(item) {
+        if (runtime.carted.indexOf(item.uid) >= 0) return;
         runtime.stats.carted = (runtime.stats.carted || 0) + 1;
         runtime.carted.push(item.uid);
         if (!store.carted) store.carted = {};
@@ -2140,8 +2323,14 @@
         // always answers 400 "Listing is a bundle.". Going straight to the cart
         // saves the round trip that would only be thrown away.
         if (/bundle/i.test(item.listingType || "")) {
-            if (await addToCart(item)) markCarted(item);
-            else { runtime.stats.failed++; runtime.failStreak = (runtime.failStreak || 0) + 1; store.failed[item.uid] = "cart"; }
+            if (await bundleAlreadyOwned(item.uid)) {
+                store.done[item.uid] = 1;
+                runtime.stats.skipped++;
+                return;
+            }
+            if (await addToCart(item)) { markCarted(item); return; }
+            if (runtime.cartFull) { noteCartFull(); return; }
+            runtime.stats.failed++; runtime.failStreak = (runtime.failStreak || 0) + 1; store.failed[item.uid] = "cart";
             return;
         }
 
@@ -2206,8 +2395,13 @@
             // into the cart instead of being written off as a skip: one
             // checkout at the end collects them all.
             let carted = false;
+            // 400/403 means the claim endpoint refuses this kind of listing; a
+            // repeating 5xx means it is broken for this listing alone. Both end
+            // in the cart: a free licence there still reaches the account at the
+            // next checkout, which is better than a silent "failed" entry.
             const isRefusal = added.status === 400 || added.status === 403;
-            if (isRefusal && !added.auth) {
+            const isServerError = added.status >= 500;
+            if ((isRefusal || isServerError) && !added.auth) {
                 carted = await addToCart(item);
             }
             if (carted) {
@@ -2215,7 +2409,10 @@
             } else {
                 runtime.stats.failed++;
                 runtime.failStreak = (runtime.failStreak || 0) + 1;
-                store.failed[item.uid] = "status " + added.status + (added.body ? " " + added.body : "");
+                // Only a real answer is remembered. A transport failure is left
+                // out so the next run tries the asset again instead of treating
+                // a lost connection as a permanent rejection.
+                if (added.status !== -1) store.failed[item.uid] = "status " + added.status + (added.body ? " " + added.body : "");
             }
         }
     }
@@ -2228,7 +2425,10 @@
         // no second pass here — that extra round trip per batch is what made
         // importing feel sluggish.
         // Items already parked in the cart must not be added twice.
-        let batch = items.filter(function (i) { return !store.done[i.uid] && !(store.carted && store.carted[i.uid]); });
+        let batch = items.filter(function (i) {
+            return !store.done[i.uid] && !(store.carted && store.carted[i.uid]) &&
+                runtime.carted.indexOf(i.uid) < 0;
+        });
 
         const total = batch.length;
         let next = 0;
@@ -2557,7 +2757,11 @@
     // The feed sits directly above the panel, so it has to follow its height.
     function syncFeedBottom() {
         if (!feedBox || !el.panel) return;
-        feedBox.style.bottom = (16 + el.panel.offsetHeight + 8) + "px";
+        // The feed sits directly above the panel, so it has to follow its height
+        // and its side, now that the panel can be dragged anywhere on the page.
+        const r = el.panel.getBoundingClientRect();
+        feedBox.style.right = Math.max(0, Math.round(window.innerWidth - r.right)) + "px";
+        feedBox.style.bottom = Math.max(0, Math.round(window.innerHeight - r.top + 8)) + "px";
     }
 
     /* ---------------------------------------------------------------- *
@@ -2966,6 +3170,11 @@
             el.user.style.borderColor = signed ? "#2f5b39" : "#5a4620";
             el.user.style.background = signed ? "rgba(69,199,97,.10)" : (runtime.userChecked ? "rgba(240,179,87,.10)" : "transparent");
         }
+        // The collapsed view keeps only these numbers, so it is refreshed on
+        // every render even while the element is hidden.
+        if (el.mini) {
+            el.mini.textContent = t("miniStats", st.indexed, st.added, st.skipped, st.failed, fmtDuration(elapsed || 0));
+        }
         el.counters.textContent = t("counters", st.indexed, runtime.queue.length, st.added, st.skipped, st.failed);
         el.meta.textContent = runtime.pages
             ? t("meta", runtime.concurrency, runtime.batchSize, rate.toFixed(2), runtime.pages, fmtDuration(elapsed || 0))
@@ -2990,8 +3199,11 @@
         }
         if (el.btnCart) {
             const n = (runtime.carted || []).length;
-            el.btnCart.style.display = (n && !runtime.running) ? "block" : "none";
-            el.btnCart.textContent = t("cartBtn", n);
+            const show = !!(n && !runtime.running);
+            el.cartRow.style.display = show ? "flex" : "none";
+            el.btnCart.style.display = show ? "flex" : "none";
+            el.btnClearCart.style.display = show ? "inline-flex" : "none";
+            el.cartLabel.textContent = t("cartBtn", n);
         }
         function paintSwitch(sw, on, label) {
             if (!sw) return;
@@ -3052,12 +3264,16 @@
         });
 
         const head = document.createElement("div");
-        Object.assign(head.style, { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" });
+        Object.assign(head.style, {
+            display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px",
+            cursor: "move", userSelect: "none", touchAction: "none"
+        });
         const title = document.createElement("strong");
-        title.textContent = t("name") + " v3.8.1";
-        title.style.fontSize = "13px";
+        title.textContent = t("name") + " v3.8.2";
+        title.id = "fab-bfg-title";
+        title.style.cssText = "font-size:13px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap";
         const headRight = document.createElement("span");
-        headRight.style.cssText = "display:inline-flex;align-items:center;gap:6px;min-width:0";
+        headRight.style.cssText = "display:inline-flex;align-items:center;gap:6px;min-width:0;flex:0 0 auto";
         const user = document.createElement("span");
         user.textContent = "";
         user.style.cssText = "font-size:11px;padding:1px 6px;border-radius:9px;border:1px solid #3a3f48;" +
@@ -3066,6 +3282,21 @@
         phase.textContent = t("idle");
         phase.style.cssText = "opacity:.7;font-size:11px";
         headRight.appendChild(user); headRight.appendChild(phase);
+
+        // Collapse toggle: shrinks the panel down to the core numbers. The caret
+        // is drawn with borders instead of the "▾" glyph, which sits off-centre
+        // inside its own box in most fonts and looks glued to the button edge.
+        const btnCollapse = document.createElement("button");
+        btnCollapse.type = "button";
+        btnCollapse.style.cssText = "flex:0 0 auto;display:flex;align-items:center;justify-content:center;" +
+            "width:22px;height:22px;padding:0;margin:0;line-height:0;font-size:0;box-sizing:border-box;" +
+            "border:1px solid #3a3f48;border-radius:5px;background:#24272e;color:#c9d1d9;cursor:pointer";
+        const caret = document.createElement("span");
+        caret.style.cssText = "display:block;width:0;height:0;border-left:4px solid transparent;" +
+            "border-right:4px solid transparent;border-top:5px solid #c9d1d9;transition:transform .2s";
+        btnCollapse.appendChild(caret);
+        headRight.appendChild(btnCollapse);
+
         head.appendChild(title); head.appendChild(headRight);
         panel.appendChild(head);
 
@@ -3151,30 +3382,6 @@
 
         // Cart checkout: shown once bundles have been parked in the cart, so the
         // order can still be placed when the browser blocks the popup.
-        const btnCart = document.createElement("button");
-        btnCart.style.cssText = "display:none;width:100%;margin:4px 0 6px;padding:5px 8px;border-radius:6px;" +
-            "border:1px solid #45C761;background:rgba(69,199,97,.14);color:#8ff0a6;cursor:pointer;font-size:12px";
-        btnCart.onclick = function () {
-            // Open synchronously so the click still counts as a user gesture.
-            // The probe is closed again when the cart turns out to be empty;
-            // otherwise it navigates to the real cart page.
-            const had = (runtime.carted || []).length;
-            const probe = window.open("about:blank", "_blank");
-            reconcileCart().then(function () {
-                render();
-                if ((runtime.carted || []).length) {
-                    if (probe) probe.location = BASE_HOST + "/cart";
-                    else window.open(BASE_HOST + "/cart", "_blank");
-                    return;
-                }
-                if (probe) probe.close();
-                if (had) toast(t("cartEmptyNow"), "warning", 5000);
-            }).catch(function () {
-                if (probe) probe.location = BASE_HOST + "/cart";
-            });
-        };
-        panel.appendChild(btnCart);
-
         const meta = document.createElement("div");
         meta.style.cssText = "font-size:11px;opacity:.7;margin-bottom:2px";
         panel.appendChild(meta);
@@ -3291,9 +3498,70 @@
         btns.appendChild(btnMegascan); btns.appendChild(btnFree);
         panel.appendChild(btns);
 
+        // Checkout and "clear cart" share one row: the cart is a server object
+        // that has to stay small enough for the site to render, so both ways of
+        // dealing with it belong side by side.
+        const cartRow = document.createElement("div");
+        cartRow.style.cssText = "display:none;gap:6px;margin:4px 0 6px";
+
+        const btnCart = document.createElement("button");
+        btnCart.style.cssText = "display:none;flex:1;padding:5px 8px;border-radius:6px;" +
+            "border:1px solid #45C761;background:rgba(69,199,97,.14);color:#8ff0a6;cursor:pointer;font-size:12px;" +
+            "align-items:center;justify-content:center";
+        const cartLabel = document.createElement("span");
+        btnCart.appendChild(cartLabel);
+
+        const btnClearCart = document.createElement("button");
+        btnClearCart.style.cssText = "display:none;padding:5px 8px;border-radius:6px;" +
+            "border:1px solid #8a4b4b;background:rgba(220,53,69,.12);color:#ffb3bb;cursor:pointer;font-size:12px;" +
+            "align-items:center;white-space:nowrap";
+        const clearCartLabel = document.createElement("span");
+        clearCartLabel.textContent = t("btnClearCart");
+        btnClearCart.appendChild(clearCartLabel);
+        btnClearCart.title = t("clearCartAsk");
+        btnClearCart.onclick = function () {
+            if (!window.confirm(t("clearCartAsk"))) return;
+            postClearCart().then(function (ok) {
+                if (!ok) { toast(t("clearCartFailed"), "error", 6000); return; }
+                runtime.carted = [];
+                runtime.stats.carted = 0;
+                store.carted = {};
+                saveCartPending();
+                render();
+                toast(t("clearCartDone"), "success", 4000);
+            });
+        };
+        btnCart.onclick = function () {
+            // Open synchronously so the click still counts as a user gesture.
+            // The probe is closed again when the cart turns out to be empty;
+            // otherwise it navigates to the real cart page.
+            const had = (runtime.carted || []).length;
+            const probe = window.open("about:blank", "_blank");
+            reconcileCart().then(function () {
+                render();
+                if ((runtime.carted || []).length) {
+                    if (probe) probe.location = BASE_HOST + "/cart";
+                    else window.open(BASE_HOST + "/cart", "_blank");
+                    return;
+                }
+                if (probe) probe.close();
+                if (had) toast(t("cartEmptyNow"), "warning", 5000);
+            }).catch(function () {
+                if (probe) probe.location = BASE_HOST + "/cart";
+            });
+        };
+        cartRow.appendChild(btnCart);
+        cartRow.appendChild(btnClearCart);
+        panel.appendChild(cartRow);
         const logLine = document.createElement("div");
         logLine.style.cssText = "margin-top:8px;font-size:11px;opacity:.55;white-space:nowrap;overflow:hidden;text-overflow:ellipsis";
         panel.appendChild(logLine);
+
+        // Compact view: the only thing left on screen once the panel is collapsed.
+        const mini = document.createElement("div");
+        mini.style.cssText = "display:none;font-size:11px;line-height:1.5;color:#9fd8a9;" +
+            "white-space:normal;word-break:break-word";
+        panel.appendChild(mini);
 
         toastBox = document.createElement("div");
         Object.assign(toastBox.style, {
@@ -3313,8 +3581,9 @@
 
         el = {
             panel: panel, phase: phase, status: status, bar: bar, barLabel: barLabel,
-            counters: counters, meta: meta, owner: owner, log: logLine,
+            counters: counters, meta: meta, owner: owner, log: logLine, mini: mini,
             scope: scopeText, scroll: toggleRow, user: user, btnCart: btnCart,
+            cartRow: cartRow, cartLabel: cartLabel, btnClearCart: btnClearCart,
             swScroll: swScroll, swFx: swFx,
             btnStart: btnStart, btnPause: btnPause, btnImport: btnImport, btnStop: btnStop
         };
@@ -3323,8 +3592,311 @@
         // installed userscript plus a manual paste). Both check for the panel
         // before creating one, so they can still race: keep exactly one.
         keepSinglePanel(panel);
+
+        /* ---------------------------------------------------------------- *
+         * placement: drag the header to move the panel anywhere, clamped to
+         * the viewport, and remembered across reloads
+         * ---------------------------------------------------------------- */
+        const UI_KEY = "fab_bfg_ui_v1";
+        let uiCollapsed = false;
+        let uiDock = "right";          // which screen edge the panel is docked to
+        let uiAnimTimer = 0;
+        // The panel is animated with CSS transitions, so getBoundingClientRect()
+        // reports an interpolated position for a few frames. These keep the
+        // actual target instead, for docking decisions and for persistence.
+        let uiLeft = NaN;
+        let uiTop = NaN;
+
+        // Everything but the header and the compact line disappears on collapse.
+        // Each entry keeps its own display value: the button rows are flex, and
+        // clearing them to "" would silently break their layout on expand.
+        const bodyEls = [];
+        for (let i = 0; i < panel.children.length; i++) {
+            const child = panel.children[i];
+            if (child === head || child === mini) continue;
+            bodyEls.push({ node: child, display: child.style.display });
+        }
+
+        function toLeftTop() {
+            const r = panel.getBoundingClientRect();
+            uiLeft = Math.round(r.left);
+            uiTop = Math.round(r.top);
+            panel.style.left = uiLeft + "px";
+            panel.style.top = uiTop + "px";
+            panel.style.right = "auto";
+            panel.style.bottom = "auto";
+        }
+
+        function clampPanel() {
+            const w = panel.offsetWidth;
+            const h = panel.offsetHeight;
+            const r = panel.getBoundingClientRect();
+            const maxLeft = Math.max(0, window.innerWidth - w);
+            const maxTop = Math.max(0, window.innerHeight - h);
+            const left = Math.min(Math.max(0, Math.round(isNaN(uiLeft) ? r.left : uiLeft)), maxLeft);
+            const top = Math.min(Math.max(0, Math.round(isNaN(uiTop) ? r.top : uiTop)), maxTop);
+            uiLeft = left; uiTop = top;
+            panel.style.left = left + "px";
+            panel.style.top = top + "px";
+            panel.style.right = "auto";
+            panel.style.bottom = "auto";
+        }
+
+        // The stored top is a position, not a promise that the whole panel still
+        // fits: a render can make it taller (the cart row appears, a log line
+        // wraps, the counters gain a digit), and only the old height was checked.
+        // So the edges are re-verified on every size change, and the panel moves
+        // only when it would actually hang out of the viewport.
+        function keepPanelInView() {
+            const w = panel.offsetWidth;
+            const h = panel.offsetHeight;
+            // A 10px reserve keeps the bottom border and its shadow on screen; it
+            // is applied only when the panel would overflow, so a height change
+            // never shifts the header unless it genuinely has to.
+            const maxLeft = Math.max(0, window.innerWidth - w);
+            const maxTop = Math.max(0, window.innerHeight - h - 10);
+            const curLeft = panel.style.left ? parseFloat(panel.style.left) : panel.getBoundingClientRect().left;
+            const curTop = panel.style.top ? parseFloat(panel.style.top) : panel.getBoundingClientRect().top;
+            const left = Math.min(Math.max(0, Math.round(curLeft)), maxLeft);
+            const top = Math.min(Math.max(0, Math.round(curTop)), maxTop);
+            if (left === uiLeft && top === uiTop) return false;
+            uiLeft = left;
+            uiTop = top;
+            toLeftTop();
+            panel.style.left = left + "px";
+            panel.style.top = top + "px";
+            return true;
+        }
+
+        function dockedLeft(width) {
+            const margin = 12;
+            return uiDock === "right"
+                ? Math.max(0, window.innerWidth - width - margin)
+                : margin;
+        }
+
+        // The caret is kept on the docked edge, so collapsing and expanding never
+        // slides it away from the pointer: it sits at the same screen x in both
+        // states, which is what makes clicking it twice in a row feel safe.
+        function placeCaretForDock(dock) {
+            uiDock = dock === "left" ? "left" : "right";
+            if (uiDock === "left") {
+                if (head.firstElementChild !== btnCollapse) head.insertBefore(btnCollapse, head.firstElementChild);
+            } else {
+                if (head.lastElementChild !== btnCollapse) head.appendChild(btnCollapse);
+            }
+        }
+
+        // The caret always faces the nearer screen edge. Judged from the panel's
+        // target geometry, never from an animating rectangle, so it also flips
+        // live while the panel is being dragged.
+        function dockFromPosition() {
+            const w = panel.offsetWidth;
+            const gapLeft = isNaN(uiLeft) ? panel.getBoundingClientRect().left : uiLeft;
+            const gapRight = window.innerWidth - gapLeft - w;
+            const want = gapRight <= gapLeft ? "right" : "left";
+            if (want !== uiDock) placeCaretForDock(want);
+        }
+
+        function saveUi() {
+            try {
+                localStorage.setItem(UI_KEY, JSON.stringify({
+                    left: uiLeft, top: uiTop, collapsed: uiCollapsed, dock: uiDock
+                }));
+            } catch (e) { /* cosmetic only */ }
+        }
+
+        // A ring that flares out of the new outline, so collapse and expand read
+        // as one deliberate gesture instead of the panel teleporting.
+        function uiHalo() {
+            if (typeof document.body.animate !== "function" && !window.requestAnimationFrame) return;
+            const r = panel.getBoundingClientRect();
+            const halo = document.createElement("div");
+            halo.style.cssText = "position:fixed;pointer-events:none;z-index:2147483645;border-radius:12px;" +
+                "border:1px solid rgba(69,199,97,.85);transition:opacity .5s ease-out," +
+                "transform .5s cubic-bezier(.2,.7,.3,1),box-shadow .5s ease-out";
+            halo.style.left = Math.round(r.left) + "px";
+            halo.style.top = Math.round(r.top) + "px";
+            halo.style.width = Math.round(r.width) + "px";
+            halo.style.height = Math.round(r.height) + "px";
+            document.body.appendChild(halo);
+            requestAnimationFrame(function () {
+                halo.style.opacity = "0";
+                halo.style.transform = "scale(1.07)";
+                halo.style.boxShadow = "0 0 20px 8px rgba(69,199,97,.22)";
+            });
+            setTimeout(function () {
+                if (halo.parentNode) halo.parentNode.removeChild(halo);
+            }, 620);
+        }
+
+        function applyCollapsed(collapsed, persist, animate) {
+            const top0 = panel.style.top ? parseFloat(panel.style.top) : panel.getBoundingClientRect().top;
+            uiCollapsed = !!collapsed;
+
+            mini.style.display = uiCollapsed ? "block" : "none";
+            for (let i = 0; i < bodyEls.length; i++) {
+                bodyEls[i].node.style.display = uiCollapsed ? "none" : bodyEls[i].display;
+            }
+            panel.style.width = uiCollapsed ? "260px" : "350px";
+            head.style.marginBottom = uiCollapsed ? "4px" : "8px";
+            // The chip and the phase word would only crowd the compact header.
+            user.style.display = uiCollapsed ? "none" : "";
+            phase.style.display = uiCollapsed ? "none" : "";
+            caret.style.transform = uiCollapsed ? "rotate(180deg)" : "none";
+            btnCollapse.title = uiCollapsed ? t("tipExpand") : t("tipCollapse");
+
+            const w = panel.offsetWidth;
+            const h1 = panel.offsetHeight;
+            dockFromPosition();
+
+            // The panel only moves up when it would actually leave the viewport:
+            // a 12px reserve here would nudge the header (and the caret) a few
+            // pixels every time the panel changes height.
+            const maxTop = Math.max(12, window.innerHeight - h1 - 10);
+            const top = Math.round(Math.min(Math.max(12, top0), maxTop));
+            const left = Math.round(dockedLeft(w));
+
+            toLeftTop();
+            // Placement is set, never transitioned: a stalled animation clock
+            // (hidden window, reduced motion) would otherwise leave the panel
+            // parked between two positions. The flourish is a glow and a ring
+            // instead, which cost nothing if they are dropped.
+            uiLeft = left; uiTop = top;
+            panel.style.left = left + "px";
+            panel.style.top = top + "px";
+            panel.style.right = "auto";
+            panel.style.bottom = "auto";
+            if (animate) {
+                panel.style.transition = "box-shadow .3s ease-out";
+                panel.style.boxShadow = "0 0 0 1px rgba(69,199,97,.55), 0 10px 30px rgba(69,199,97,.25)";
+                uiHalo();
+                clearTimeout(uiAnimTimer);
+                uiAnimTimer = setTimeout(function () {
+                    panel.style.boxShadow = "0 10px 28px rgba(0,0,0,.45)";
+                    syncFeedBottom();
+                }, 340);
+            }
+            syncFeedBottom();
+            render();
+            if (persist) saveUi();
+        }
+
+        // The toggle sits inside the drag handle, so the gesture stops there.
+        btnCollapse.addEventListener("pointerdown", function (e) { e.stopPropagation(); });
+        // Read-only probe for the UI state, so tests can assert on the intent
+        // rather than on a rectangle that an animation may still be moving.
+        window.__FAB_UI = function () {
+            return { collapsed: uiCollapsed, dock: uiDock, left: uiLeft, top: uiTop, width: panel.offsetWidth };
+        };
+
+        function toggleCollapsed() { applyCollapsed(!uiCollapsed, true, true); }
+        btnCollapse.onclick = function (e) {
+            e.stopPropagation();
+            toggleCollapsed();
+        };
+        // Double-clicking the title is handled from the pointer stream further
+        // down: the drag handler has to cancel the native default on the header,
+        // which also suppresses the compatibility dblclick event, so relying on
+        // "dblclick" here would never fire for a real double click.
+
+        let drag = null;
+        head.addEventListener("pointerdown", function (e) {
+            if (e.button !== undefined && e.button !== 0) return;
+            const r = panel.getBoundingClientRect();
+            drag = { dx: e.clientX - r.left, dy: e.clientY - r.top, sx: e.clientX, sy: e.clientY, moved: false };
+            // The collapse animation leaves a transition on left/top; dragging
+            // has to track the pointer with no easing at all.
+            panel.style.transition = "none";
+            try { head.setPointerCapture(e.pointerId); } catch (err) { /* older engines */ }
+            // No preventDefault here: it would kill the native double-click on
+            // the header. Text selection is already off via userSelect.
+        });
+        head.addEventListener("pointermove", function (e) {
+            if (!drag) return;
+            if (Math.abs(e.clientX - drag.sx) > 5 || Math.abs(e.clientY - drag.sy) > 5) drag.moved = true;
+            const w = panel.offsetWidth;
+            const h = panel.offsetHeight;
+            const maxLeft = Math.max(0, window.innerWidth - w);
+            const maxTop = Math.max(0, window.innerHeight - h);
+            const left = Math.min(Math.max(0, e.clientX - drag.dx), maxLeft);
+            const top = Math.min(Math.max(0, e.clientY - drag.dy), maxTop);
+            uiLeft = Math.round(left); uiTop = Math.round(top);
+            panel.style.left = uiLeft + "px";
+            panel.style.top = uiTop + "px";
+            panel.style.right = "auto";
+            panel.style.bottom = "auto";
+            dockFromPosition();
+            syncFeedBottom();
+        });
+        // A tap, not a drag, toggles the panel - a double tap anywhere on the
+        // header counts, so the title works as a switch without aiming at the
+        // 22px caret button.
+        let lastTap = null;
+        function endDrag(e) {
+            if (!drag) return;
+            const moved = drag.moved;
+            drag = null;
+            saveUi();
+            syncFeedBottom();
+            if (moved || !e || e.type !== "pointerup") { lastTap = null; return; }
+            const now = Date.now();
+            if (lastTap && now - lastTap.at < 480 && Math.abs(e.clientX - lastTap.x) < 10 && Math.abs(e.clientY - lastTap.y) < 10) {
+                lastTap = null;
+                toggleCollapsed();
+            } else {
+                lastTap = { at: now, x: e.clientX, y: e.clientY };
+            }
+        }
+        head.addEventListener("pointerup", endDrag);
+        head.addEventListener("pointercancel", endDrag);
+
+        // A shrinking window must never leave the panel half off screen.
+        window.addEventListener("resize", function () {
+            if (uiCollapsed) {
+                const w = panel.offsetWidth;
+                uiLeft = Math.round(dockedLeft(w));
+                panel.style.left = uiLeft + "px";
+                panel.style.right = "auto";
+            }
+            clampPanel();
+            dockFromPosition();
+            syncFeedBottom();
+        });
+
+        try {
+            const savedUi = JSON.parse(localStorage.getItem(UI_KEY) || "null");
+            if (savedUi && typeof savedUi.left === "number" && typeof savedUi.top === "number") {
+                panel.style.left = savedUi.left + "px";
+                panel.style.top = savedUi.top + "px";
+                panel.style.right = "auto";
+                panel.style.bottom = "auto";
+            }
+            placeCaretForDock(savedUi && savedUi.dock);
+            uiCollapsed = !!(savedUi && savedUi.collapsed);
+        } catch (e) { /* first run, keep the defaults */ }
+        clampPanel();
+        applyCollapsed(uiCollapsed, false, false);
+
+        // Any change in the panel's own box (a new cart row, a longer log line,
+        // the account chip landing) re-checks the bottom edge immediately instead
+        // of waiting for the next resize or the 900 ms settle.
+        if (typeof ResizeObserver === "function") {
+            const uiObserver = new ResizeObserver(function () {
+                if (keepPanelInView()) {
+                    saveUi();
+                    syncFeedBottom();
+                }
+            });
+            uiObserver.observe(panel);
+        }
+
         loadStore();
         runtime.carted = loadCartPending().filter(function (u) { return !store.done[u]; });
+        // The restored list has to feed the same lookup the importer filters on,
+        // otherwise an entry recovered from storage is claimed a second time.
+        if (!store.carted) store.carted = {};
+        runtime.carted.forEach(function (u) { store.carted[u] = 1; });
         // The stored list may be a leftover from an order that already went
         // through (or a cart cleared by hand). Check it against the real cart
         // once the panel is up, so "checkout (N)" never advertises an empty cart.
@@ -3332,6 +3904,10 @@
         render();
         loadMe();
         syncFeedBottom();
+        // The first render fills in the account chip and the counters, which makes
+        // the panel taller than the box it was placed in. Re-settle afterwards so
+        // the bottom edge never hangs off the viewport.
+        setTimeout(function () { clampPanel(); syncFeedBottom(); }, 900);
         window.addEventListener("resize", syncFeedBottom);
         setInterval(paintTick, 700);
         setInterval(autoScrollStep, 450);
